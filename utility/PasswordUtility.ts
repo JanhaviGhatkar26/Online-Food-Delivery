@@ -23,7 +23,8 @@ export const ValidatePassword = async (
 };
 
 export const GenerateSignature = async (payload: AuthPayload) => {
-  return jwt.sign(payload, SECRATE_KEY, { expiresIn: "90d" });
+  // console.log({ payload });
+  return jwt.sign(payload, SECRATE_KEY, { expiresIn: "1d" });
 };
 
 export const ValidateSignature = async (req: Request) => {

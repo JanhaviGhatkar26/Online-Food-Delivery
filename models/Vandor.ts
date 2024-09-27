@@ -12,7 +12,7 @@ interface VandorDoc extends Document {
   isActive: string;
   is_deleted: string;
   salt: string;
-  serviceAvailable: [string];
+  serviceAvailable: boolean;
   coverImage: [string];
   rating: number;
   // foods: any;
