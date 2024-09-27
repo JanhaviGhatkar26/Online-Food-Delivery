@@ -25,7 +25,7 @@ mongoose
   .catch((err) => {
     console.log("Error from monggose connection", err);
   });
-app.listen(process.env.PORT || 8000, () => {
+app.listen(8000, () => {
   console.clear();
-  console.log("App is listning to the port 8000");
+  console.log(`App is listning to the port 8000`);
 });

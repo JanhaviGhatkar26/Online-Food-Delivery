@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { VandorLoginInputs } from "../dto";
 import { FindVandor } from "./AdminController";
-import { ValidatePassword } from "../utility";
+import { GenerateSignature, ValidatePassword } from "../utility";
 
-export const VendorLogin = async (
+export const VandorLogin = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -18,10 +18,38 @@ export const VendorLogin = async (
       exsitingVandor?.salt
     );
     if (validation) {
-      return res.json(exsitingVandor);
+      const signature = GenerateSignature({
+        _id: String(exsitingVandor?._id),
+        name: exsitingVandor?.name,
+        email: exsitingVandor?.email,
+        foodTypes: exsitingVandor?.foodType,
+      });
+      return res.json(signature);
     } else {
       return res.json({ message: "Password is not valid" });
     }
   }
   return res.json({ message: "Login credentials not valid" });
 };
+
+export const GetVandorProfile = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const user = req.user;
+  if (user) {
+    const exsitingVandor = await FindVandor(user._id);
+    return res.json();
+  }
+};
+export const UpdateVandorProfile = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {};
+export const UpdateVandorService = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {};
