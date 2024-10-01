@@ -15,7 +15,7 @@ interface VandorDoc extends Document {
   serviceAvailable: boolean;
   coverImage: [string];
   rating: number;
-  // foods: any;
+  foods: any;
 }
 
 const VandorSchema = new Schema(
@@ -42,12 +42,12 @@ const VandorSchema = new Schema(
       enum: ["1", "0"], // Restrict values to '1' deleted or '0' No deleted
       default: "0", // Set the default value to '1'
     },
-    // foods: [
-    //   {
-    //     tyeps: mongoose.SchemaTypes.ObjectId,
-    //     ref: "food",
-    //   },
-    // ],
+    foods: [
+      {
+        type: mongoose.SchemaTypes.ObjectId,
+        ref: "food",
+      },
+    ],
   },
   {
     toJSON: {

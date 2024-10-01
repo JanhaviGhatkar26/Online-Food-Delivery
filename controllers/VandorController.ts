@@ -1,7 +1,10 @@
 import { Request, Response, NextFunction } from "express";
-import { EditVandorInputs, VandorLoginInputs } from "../dto";
+import { CreateFoodInput, EditVandorInputs, VandorLoginInputs } from "../dto";
 import { FindVandor } from "./AdminController";
 import { GenerateSignature, ValidatePassword } from "../utility";
+import { Food } from "../models";
+import path from "path";
+import fs from "fs";
 
 //Login the vandor by email and password
 export const VandorLogin = async (
@@ -95,18 +98,117 @@ export const AddFood = async (
   next: NextFunction
 ) => {
   const user = req.user;
+
+  const { name, description, category, foodType, readyTime, price } = <
+    CreateFoodInput
+  >req.body;
+
   if (user) {
+    const vandor = await FindVandor(user._id);
+
+    if (vandor !== null) {
+      const food = await Food.create({
+        vandorId: vandor._id,
+        name: name,
+        description: description,
+        category: category,
+        price: price,
+        rating: 0,
+        readyTime: readyTime,
+        foodType: foodType,
+        images: [], // Initialize an empty array for images
+      });
+
+      vandor.foods.push(food);
+      const result = await vandor.save();
+      const foodImagePath = path.join(
+        __dirname,
+        "..",
+        "images",
+        "Food",
+        String(food._id)
+      );
+      if (!fs.existsSync(foodImagePath)) {
+        fs.mkdirSync(foodImagePath, { recursive: true });
+      }
+      const files = req.files as [Express.Multer.File];
+
+      let images: [string] = [""];
+      files.map((file: Express.Multer.File) => {
+        const fileName = `${new Date().toISOString().replace(/:/g, "-")}_${
+          file.originalname
+        }`;
+        // Move the file to the correct folder
+        const filePath = path.join(foodImagePath, fileName);
+        fs.renameSync(file.path, filePath); // Move the uploaded file to the new folder
+        // return fileName; // Return the filename to be stored in the DB
+
+        if (images[0] === "") {
+          images[0] = fileName;
+        } else {
+          images.push(fileName);
+        }
+      });
+
+      console.log(images);
+      food.images = images;
+      await food.save();
+      return res.json(result);
+    }
   }
-  return res.json({ message: "Something went wrong while adding food." });
+  return res.json({ message: "Unable to Update vendor profile " });
 };
+// export const AddFood = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   const user = req.user;
+
+//   const { name, description, category, foodType, readyTime, price } = <
+//     CreateFoodInput
+//   >req.body;
+
+//   if (user) {
+//     const vandor = await FindVandor(user._id);
+
+//     if (vandor !== null) {
+//       const files = req.files as [Express.Multer.File];
+
+//       const images = files.map((file: Express.Multer.File) => file.filename);
+
+//       const food = await Food.create({
+//         vandorId: vandor._id,
+//         name: name,
+//         description: description,
+//         category: category,
+//         price: price,
+//         rating: 0,
+//         readyTime: readyTime,
+//         foodType: foodType,
+//         images: images,
+//       });
+
+//       vandor.foods.push(food);
+//       const result = await vandor.save();
+//       return res.json(result);
+//     }
+//   }
+//   return res.json({ message: "Unable to Update vendor profile " });
+// };
+
 // Get all food item
-export const GetFood = async (
+export const GetFoods = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   const user = req.user;
   if (user) {
+    const foods = await Food.find({ vandorId: user._id });
+    if (foods !== null) {
+      return res.json(foods);
+    }
   }
-  return res.json({ message: "Food information nott found." });
+  return res.json({ message: "Foods not found!" });
 };
