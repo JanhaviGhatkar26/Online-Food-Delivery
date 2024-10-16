@@ -73,6 +73,50 @@ export const UpdateVandorProfile = async (
   }
   return res.json({ message: "Vandor information Not Found" });
 };
+
+export const UpdateVandorCoverImage = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const user = req.user;
+
+  if (user) {
+    const vandor = await FindVandor(user._id);
+
+    if (vandor !== null) {
+      console.log({ vandor });
+      const vandorCoverImgPath = path.join(
+        __dirname,
+        "..",
+        "images",
+        "Vandor",
+        String(vandor._id)
+      );
+
+      if (!fs.existsSync(vandorCoverImgPath)) {
+        fs.mkdirSync(vandorCoverImgPath, { recursive: true });
+      }
+
+      const files = req.files as Express.Multer.File[]; // Adjusted for types
+
+      let images: string[] = [];
+      files.forEach((file: Express.Multer.File) => {
+        const filePath = path.join(vandorCoverImgPath, file.filename);
+        fs.renameSync(file.path, filePath); // Move the uploaded file to the new folder
+        images.push(file.filename);
+      });
+
+      console.log(images);
+      vandor.coverImage.push(...images); // Update the coverImage field
+
+      const saveResult = await vandor.save();
+
+      return res.json(saveResult);
+    }
+  }
+};
+
 //Update the vandor service status
 export const UpdateVandorService = async (
   req: Request,

@@ -2,6 +2,8 @@ import { NextFunction, Request, Response } from "express";
 import { CreateVandorInput } from "../dto";
 import { Vandor } from "../models";
 import { GeneratePassword, GenerateSalt } from "../utility";
+import path from "path";
+import fs from "fs";
 
 export const FindVandor = async (
   id: string | undefined,
@@ -27,6 +29,7 @@ export const CreateVandor = async (
     address,
     email,
     foodType,
+    coverImage,
     ownerName,
     password,
     pincode,
@@ -39,9 +42,6 @@ export const CreateVandor = async (
       message: "A Vandor is already exist with this email ID or phone number",
     });
   }
-
-  //generate a salt
-
   const salt = await GenerateSalt();
   const userPassword = await GeneratePassword(password, salt);
   // crypt password
@@ -57,10 +57,33 @@ export const CreateVandor = async (
     phone: phone,
     rating: 0,
     serviceAvailable: false,
-    coverImages: [],
+    coverImage: [],
     foods: [],
   });
-  return res.json(createdVandor);
+  const vandorCoverImgPath = path.join(
+    __dirname,
+    "..",
+    "images",
+    "Vandor",
+    String(createdVandor._id)
+  );
+
+  if (!fs.existsSync(vandorCoverImgPath)) {
+    fs.mkdirSync(vandorCoverImgPath, { recursive: true });
+  }
+
+  const files = req.files as Express.Multer.File[]; // Adjusted for types
+
+  let images: string[] = [];
+  files.forEach((file: Express.Multer.File) => {
+    const filePath = path.join(vandorCoverImgPath, file.filename);
+    fs.renameSync(file.path, filePath); // Move the uploaded file to the new folder
+    images.push(file.filename);
+  });
+
+  createdVandor.coverImage.push(...images);
+  const saveResult = await createdVandor.save();
+  return res.json(saveResult);
 };
 export const GetVandor = async (
   req: Request,
