@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 
 dotenv.config({
-  path: "./.env",
+  path: ".env",
 });
 
 export const MONGO_URL = `mongodb://localhost:27017/${

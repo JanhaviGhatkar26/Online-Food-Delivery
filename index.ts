@@ -7,7 +7,7 @@ import { MONGO_URL } from "./config";
 import path from "path";
 import fs from "fs";
 dotenv.config({
-  path: "./.env",
+  path: "./config/.env",
 });
 
 const app = express();
@@ -45,7 +45,7 @@ mongoose
   .catch((err) => {
     console.log("Error from monggose connection", err);
   });
-app.listen(8000, () => {
+app.listen(process.env.PORT, () => {
   console.clear();
   console.log(`App is listning to the port 8000`);
 });
