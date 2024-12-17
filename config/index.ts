@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 
 dotenv.config({
-  path: ".env",
+  path: "config/.env",
 });
 
 export const MONGO_URL = `mongodb://localhost:27017/${
@@ -9,3 +9,4 @@ export const MONGO_URL = `mongodb://localhost:27017/${
 }`;
 
 export const SECRATE_KEY: string = process.env.SECRATE_KEY || "";
+export const PORT = process.env.PORT || 8000;

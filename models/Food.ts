@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from "mongoose";
 
-interface FoodDoc extends Document {
+export interface FoodDoc extends Document {
   vandorId: string;
   name: string;
   description: string;
@@ -10,6 +10,8 @@ interface FoodDoc extends Document {
   price: number;
   rating: number;
   images: [string];
+  isActive: string;
+  is_deleted: string;
 }
 
 const FoodSchema = new Schema(
@@ -23,6 +25,16 @@ const FoodSchema = new Schema(
     price: { type: Number },
     rating: { type: Number },
     images: { type: [String] },
+    isActive: {
+      type: String,
+      enum: ["1", "0"], // Restrict values to '1' active or '0' deactive
+      default: "1", // Set the default value to '1'
+    },
+    is_deleted: {
+      type: String,
+      enum: ["1", "0"], // Restrict values to '1' deleted or '0' No deleted
+      default: "0", // Set the default value to '1'
+    },
   },
   {
     toJSON: {

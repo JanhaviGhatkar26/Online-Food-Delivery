@@ -11,5 +11,8 @@ const imageStorage = multer.diskStorage({
 });
 
 export const images = multer({ storage: imageStorage }).array("images", 10); // Expecting an array of files under "images"
+
 export * from "./AdminRoutes";
 export * from "./VandorRoutes";
+export * from "./ShoppingRoutes";
+export * from "./CustomerRoutes";

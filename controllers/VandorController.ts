@@ -13,9 +13,15 @@ export const VandorLogin = async (
   next: NextFunction
 ) => {
   const { email, password } = <VandorLoginInputs>req.body;
+  console.log(email, password);
   const exsitingVandor = await FindVandor("", email);
-
+  console.log("exsitingVandor:", exsitingVandor);
   if (exsitingVandor !== null) {
+    if (exsitingVandor.is_deleted !== "0" || exsitingVandor.isActive !== "1") {
+      return res
+        .status(404)
+        .json({ message: "Vendor is deleted or inactive." });
+    }
     const validation = await ValidatePassword(
       password,
       exsitingVandor?.password,
@@ -28,8 +34,14 @@ export const VandorLogin = async (
         email: exsitingVandor?.email,
         foodType: exsitingVandor?.foodType,
       });
-      // console.log(signature);
-      return res.json(signature);
+      return res.json({
+        message: "Logged in sucsefully",
+        _id: String(exsitingVandor?._id),
+        name: exsitingVandor?.name,
+        email: exsitingVandor?.email,
+        foodType: exsitingVandor?.foodType,
+        token: signature,
+      });
     } else {
       return res.json({ message: "Password is not valid" });
     }
@@ -202,6 +214,7 @@ export const AddFood = async (
   }
   return res.json({ message: "Unable to Update vendor profile " });
 };
+
 // export const AddFood = async (
 //   req: Request,
 //   res: Response,

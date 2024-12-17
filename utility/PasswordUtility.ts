@@ -1,8 +1,6 @@
 import bcrypt from "bcrypt";
 import { Request } from "express";
 import jwt from "jsonwebtoken";
-
-import { VandorPayload } from "../dto";
 import { AuthPayload } from "../dto/Auth.dto";
 import { SECRATE_KEY } from "../config";
 
@@ -23,7 +21,6 @@ export const ValidatePassword = async (
 };
 
 export const GenerateSignature = async (payload: AuthPayload) => {
-  // console.log({ payload });
   return jwt.sign(payload, SECRATE_KEY, { expiresIn: "1d" });
 };
 

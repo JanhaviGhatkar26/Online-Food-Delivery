@@ -85,12 +85,13 @@ export const CreateVandor = async (
   const saveResult = await createdVandor.save();
   return res.json(saveResult);
 };
+
 export const GetVandor = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const vandors = await Vandor.find();
+  const vandors = await Vandor.find({ is_deleted: "0" });
   if (vandors !== null) {
     return res.json(vandors);
   }
