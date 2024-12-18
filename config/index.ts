@@ -10,3 +10,5 @@ export const MONGO_URL = `mongodb://localhost:27017/${
 
 export const SECRATE_KEY: string = process.env.SECRATE_KEY || "";
 export const PORT = process.env.PORT || 8000;
+export const TWILIOACCOUNTSID = process.env.TWILIOACCOUNTSID;
+export const TWILIOAUTHTOKEN = process.env.TWILIOAUTHTOKEN;
