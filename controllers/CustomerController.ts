@@ -1,6 +1,10 @@
 import { plainToClass } from "class-transformer";
 import { NextFunction, Request, Response } from "express";
-import { CreateCustomerInput } from "../dto/Customer.dto";
+import {
+  CreateCustomerInput,
+  CustomerLoginInputs,
+  EditCustomerProfileInputs,
+} from "../dto/Customer.dto";
 import { validate } from "class-validator";
 import {
   GenerateOTP,
@@ -8,6 +12,7 @@ import {
   GenerateSalt,
   GenerateSignature,
   onRequestOtp,
+  ValidatePassword,
 } from "../utility";
 import { Customer } from "../models";
 
@@ -27,7 +32,7 @@ export const CustomerSignUp = async (
   const { email, password, phone, status } = customerInputs;
   const salt = await GenerateSalt();
   const userPassword = await GeneratePassword(password, salt);
-  const { otp, expiry } = await GenerateOTP();
+  const { otp, expiry } = GenerateOTP();
   console.log("otp, expiry:", otp, expiry);
   const customerData = {
     firstName: "",
@@ -46,38 +51,35 @@ export const CustomerSignUp = async (
   if (status !== undefined) {
     Object.assign(customerData, { isActive: status });
   }
+  const existingCustomer = await Customer.findOne({
+    email: email,
+    is_deleted: "0",
+  });
+  if (existingCustomer !== null) {
+    return res.status(400).json({ message: "Email already exist!" });
+  }
+  const newCustomer = await Customer.create(customerData);
 
-  // Create the customer
-  try {
-    const newCustomer = await Customer.create(customerData);
-
-    if (newCustomer) {
-      // Attempt to send the OTP
-      const otpResponse = await onRequestOtp(otp, phone);
-      if (!otpResponse) {
-        return res
-          .status(400)
-          .json({ message: "Failed to send OTP. Please try again." });
-      }
-
-      // Generate the signature
-      const signature = await GenerateSignature({
-        _id: String(newCustomer._id),
-        email: newCustomer.email,
-        verified: newCustomer.verified,
-      });
-
-      return res.status(200).json({
-        signature: signature,
-        verified: newCustomer.verified,
-        email: newCustomer.email,
-      });
+  if (newCustomer) {
+    // Attempt to send the OTP
+    const otpResponse = await onRequestOtp(otp, phone);
+    if (!otpResponse) {
+      return res
+        .status(400)
+        .json({ message: "Failed to send OTP. Please try again." });
     }
-  } catch (error) {
-    console.error("Error during customer signup:", error);
-    return res.status(500).json({
-      message:
-        "An error occurred while creating the customer. Please try again later.",
+
+    // Generate the signature
+    const signature = await GenerateSignature({
+      _id: String(newCustomer._id),
+      email: newCustomer.email,
+      verified: newCustomer.verified,
+    });
+
+    return res.status(200).json({
+      signature: signature,
+      verified: newCustomer.verified,
+      email: newCustomer.email,
     });
   }
   return res.status(400).json("error to signup");
@@ -87,34 +89,181 @@ export const CustomerLogin = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {};
-
-export const Authenticate = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {};
+) => {
+  const loginInputs = plainToClass(CustomerLoginInputs, req.body);
+  const loginErrors = await validate(loginInputs, {
+    validationError: { target: false },
+  });
+  if (loginErrors.length > 0) {
+    return res.status(400).json(loginErrors);
+  }
+  const { email, password } = loginInputs;
+  const customer = await Customer.findOne({
+    email: email,
+    is_deleted: "0",
+    isActive: "1",
+  });
+  if (customer) {
+    console.log("customer :", customer);
+    const validation = await ValidatePassword(
+      password,
+      customer?.password,
+      customer?.salt
+    );
+    console.log("validation :", validation);
+    if (validation) {
+      // Generate the signature
+      const signature = await GenerateSignature({
+        _id: String(customer._id),
+        email: customer.email,
+        verified: customer.verified,
+      });
+      return res.status(200).json({
+        msg: "Logged in succesfully",
+        signature: signature,
+        verified: customer?.verified,
+        email: customer?.email,
+      });
+    } else {
+      return res.status(400).json("Ones check you email or password");
+    }
+  }
+  return res.status(404).json("Error With Login");
+};
 
 export const CustomerVerify = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {};
+) => {
+  const { otp } = req.body;
+  const customer = req.user;
+
+  if (customer) {
+    const profile = await Customer.findById(customer._id);
+    if (profile) {
+      if (profile.otp === parseInt(otp) && profile.otp_expiry >= new Date()) {
+        profile.verified = true;
+
+        const updatedCustomerResponse = await profile.save();
+
+        const signature = await GenerateSignature({
+          _id: String(updatedCustomerResponse._id),
+          email: updatedCustomerResponse.email,
+          verified: updatedCustomerResponse.verified,
+        });
+        return res.status(200).json({
+          signature: signature,
+          email: updatedCustomerResponse.email,
+          verified: updatedCustomerResponse.verified,
+        });
+      }
+    }
+  }
+
+  return res.status(400).json({ msg: "Unable to verify Customer" });
+};
 
 export const RequestOtp = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {};
+) => {
+  const customer = req.user;
+
+  if (customer) {
+    const profile = await Customer.findById(customer._id);
+
+    if (profile) {
+      const { otp, expiry } = GenerateOTP();
+      profile.otp = otp;
+      profile.otp_expiry = expiry;
+
+      await profile.save();
+      const sendCode = await onRequestOtp(otp, profile.phone);
+
+      if (!sendCode) {
+        return res
+          .status(400)
+          .json({ message: "Failed to verify your phone number" });
+      }
+
+      return res
+        .status(200)
+        .json({ message: "OTP sent to your registered Mobile Number!" });
+    }
+  }
+
+  return res.status(400).json({ msg: "Error with Requesting OTP" });
+};
 
 export const GetCustomerProfile = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {};
+) => {
+  const customer = req.user;
+
+  if (customer) {
+    const profile = await Customer.findById(customer._id);
+
+    if (profile) {
+      return res.status(201).json(profile);
+    }
+  }
+  return res.status(400).json({ msg: "Error while Fetching Profile" });
+};
 
 export const EditCustomerProfile = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {};
+) => {
+  const loggedInCustomer = req.user;
+  if (loggedInCustomer) {
+    const profile = await Customer.findById(loggedInCustomer._id);
+    const profileInputs = plainToClass(EditCustomerProfileInputs, req.body);
+    const profileErrors = await validate(profileInputs, {
+      validationError: { target: false },
+    });
+    const { address, firstName, lastName, password, phone } = profileInputs;
+    if (profileErrors.length > 0) {
+      return res.status(400).json(profileErrors);
+    }
+    if (profile) {
+      const editedFields: Partial<EditCustomerProfileInputs> = {};
+
+      // Add fields dynamically from profileInputs
+      Object.keys(profileInputs).forEach((key) => {
+        if (profileInputs[key] !== undefined) {
+          editedFields[key] = profileInputs[key];
+        }
+      });
+
+      // Special handling for password (if needed)
+      if (password) {
+        console.log("password :", password);
+        const salt = await GenerateSalt();
+
+        const hashedPassword = await GeneratePassword(password, salt);
+        editedFields.password = hashedPassword;
+        profile.salt = salt;
+      }
+      if (phone) {
+        editedFields.phone = phone;
+        profile.verified = false;
+      }
+
+      // Merge editedFields into the profile object
+      Object.assign(profile, editedFields);
+
+      // Save the updated profile
+      const updatedProfile = await profile.save();
+
+      return res
+        .status(200)
+        .json({ message: "Profile updated successfully", updatedProfile });
+    }
+  }
+  return res.status(400).json({ msg: "Error while Updating Profile" });
+};

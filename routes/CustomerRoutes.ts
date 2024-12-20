@@ -1,6 +1,5 @@
 import express, { Request, Response, NextFunction } from "express";
 import {
-  Authenticate,
   CustomerLogin,
   CustomerSignUp,
   CustomerVerify,
@@ -8,6 +7,7 @@ import {
   GetCustomerProfile,
   RequestOtp,
 } from "../controllers";
+import { Authenticate } from "../middlewares";
 
 const router = express.Router();
 
