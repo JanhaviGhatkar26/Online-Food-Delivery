@@ -3,21 +3,32 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon index.ts",
+    "start": "nodemon src/index.ts",
+    "dev": "node dist/index.ts",
+    "build": "tsc -p .",
+    "postinstall": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": "20.16.0",
+    "npm": "10.8.1"
   },
   "author": "",
   "license": "ISC",
   "description": "",
-  "dependencies": {
+  "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/mongoose": "^5.11.97",
     "@types/multer": "^1.4.12",
+    "nodemon": "^3.1.7",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.6.2"
+  },
+  "dependencies": {
     "bcrypt": "^5.1.1",
-    "body-parser": "^1.20.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "cors": "^2.8.5",
@@ -26,9 +37,6 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.6.3",
     "multer": "^1.4.5-lts.1",
-    "nodemon": "^3.1.7",
-    "ts-node-dev": "^2.0.0",
-    "twilio": "^5.4.0",
-    "typescript": "^5.6.2"
+    "twilio": "^5.4.0"
   }
 }

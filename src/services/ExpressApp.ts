@@ -1,6 +1,4 @@
 import express, { Application } from "express";
-import dotenv from "dotenv";
-import bodyParser from "body-parser";
 import {
   AdminRoute,
   ShoppingRoutes,
@@ -11,8 +9,8 @@ import path from "path";
 import fs from "fs";
 
 export default async (app: Application) => {
-  app.use(bodyParser.json());
-  app.use(bodyParser.urlencoded({ extended: true }));
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
   const imagePath = path.join(__dirname, "../images");
   const vandorPath = path.join(imagePath, "/Vandor");
   const foodDirPath = path.join(imagePath, "/Food");
