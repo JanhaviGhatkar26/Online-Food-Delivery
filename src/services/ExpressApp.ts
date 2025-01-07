@@ -11,10 +11,20 @@ import fs from "fs";
 export default async (app: Application) => {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  // Define the main images folder and subdirectories
   const imagePath = path.join(__dirname, "../images");
+  console.log("imagePath :", imagePath);
   const vandorPath = path.join(imagePath, "/Vandor");
   const foodDirPath = path.join(imagePath, "/Food");
 
+  // Ensure the main images directory exists globally
+  if (!fs.existsSync(imagePath)) {
+    fs.mkdirSync(imagePath, { recursive: true });
+    console.log("Main images directory created:", imagePath);
+  }
+
+  // Function to create additional subdirectories
   function checkAndCreateDirectories() {
     const directoriesToCheck = [
       { path: vandorPath, name: "Vandor" },
@@ -28,12 +38,19 @@ export default async (app: Application) => {
       }
     });
   }
+
+  // Create subdirectories for Vandor and Food
   checkAndCreateDirectories();
+
+  // Serve static files from the images directory
   app.use("/images", express.static(imagePath));
 
+  // Register routes
   app.use("/admin", AdminRoute);
   app.use("/Vandor", VandorRoute);
   app.use("/customer", CustomerRoutes);
   app.use(ShoppingRoutes);
+
+  console.log("Express middleware initialized.");
   return app;
 };
