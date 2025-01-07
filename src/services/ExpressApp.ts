@@ -51,6 +51,5 @@ export default async (app: Application) => {
   app.use("/customer", CustomerRoutes);
   app.use(ShoppingRoutes);
 
-  console.log("Express middleware initialized.");
   return app;
 };
