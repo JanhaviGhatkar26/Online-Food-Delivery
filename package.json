@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "nodemon src/index.ts",
-    "dev": "node dist/index.ts",
+    "dev": "node dist/index.js",
     "build": "tsc -p .",
     "postinstall": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
