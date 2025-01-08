@@ -9,6 +9,6 @@ dotenv.config({
 // }`;
 export const MONGO_URL = `${process.env.MONGODB_URL}${process.env.DB_NAME}`;
 export const SECRATE_KEY: string = process.env.SECRATE_KEY || "";
-export const PORT = process.env.PORT || 8000;
+export const PORT = parseInt(process.env.PORT) || 8001;
 export const TWILIOACCOUNTSID = process.env.TWILIOACCOUNTSID;
 export const TWILIOAUTHTOKEN = process.env.TWILIOAUTHTOKEN;
