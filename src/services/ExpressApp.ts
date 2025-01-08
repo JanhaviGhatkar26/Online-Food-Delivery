@@ -50,6 +50,8 @@ export default async (app: Application) => {
   app.use("/Vandor", VandorRoute);
   app.use("/customer", CustomerRoutes);
   app.use(ShoppingRoutes);
-
+app.use("/", (req, res) => {
+    res.send("Hi Admin");
+  });
   return app;
 };
