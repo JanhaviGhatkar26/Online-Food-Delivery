@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
+import { OrderDoc } from "./Order";
 
 interface CustomerDoc extends Document {
   firstName: string;
@@ -15,6 +16,7 @@ interface CustomerDoc extends Document {
   lng: number;
   isActive: string;
   is_deleted: string;
+  orders: [OrderDoc];
 }
 
 const CustomerSchema = new Schema(
@@ -31,6 +33,12 @@ const CustomerSchema = new Schema(
     otp_expiry: { type: Date, required: true },
     lat: { type: Number },
     lng: { type: Number },
+    orders: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "order",
+      },
+    ],
     isActive: {
       type: String,
       enum: ["1", "0"], // Restrict values to '1' active or '0' deactive

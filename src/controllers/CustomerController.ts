@@ -4,6 +4,7 @@ import {
   CreateCustomerInput,
   CustomerLoginInputs,
   EditCustomerProfileInputs,
+  OrderInputs,
 } from "../dto/Customer.dto";
 import { validate } from "class-validator";
 import {
@@ -14,7 +15,7 @@ import {
   onRequestOtp,
   ValidatePassword,
 } from "../utility";
-import { Customer } from "../models";
+import { Customer, Food } from "../models";
 
 export const CustomerSignUp = async (
   req: Request,
@@ -267,3 +268,53 @@ export const EditCustomerProfile = async (
   }
   return res.status(400).json({ msg: "Error while Updating Profile" });
 };
+
+//orders
+export const CreateOrder = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  // grab the lgin in customer;
+  const customer = req.user;
+  if (customer) {
+    // create an order ID;
+    const orderID = `${Math.floor(Math.random() * 899999) + 1000}`;
+    const profile = await Customer.findById(customer._id);
+
+    // Grab order items fromrequest ({id:xx , unit:xx});
+    const cart = <[OrderInputs]>req.body;
+    let cartItems = Array();
+    let netAmount = 0.0;
+    // Calculate order amount
+    const foods = await Food.find()
+      .where("_id")
+      .in(cart.map((item) => item._id))
+      .exec();
+    console.log({ foods: foods });
+    console.dir({ "foods dir": foods });
+
+    foods.map((food) => {
+      cart.map(({ _id, unit }) => {
+        if (food._id == _id) {
+          netAmount += food.price * unit;
+          cartItems.push({ food, unit });
+        }
+      });
+    });
+    // Create order with item description and note of customer\
+    if (cartItems) {
+    }
+    // Finally update ordersto user account
+  }
+};
+export const GetOrders = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {};
+export const GetOrderByID = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {};
