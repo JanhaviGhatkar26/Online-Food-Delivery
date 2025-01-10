@@ -21,7 +21,7 @@ export default async (app: Application) => {
   // Ensure the main images directory exists globally
   if (!fs.existsSync(imagePath)) {
     fs.mkdirSync(imagePath, { recursive: true });
-    console.log("Main images directory created:", imagePath);
+    // console.log("Main images directory created:", imagePath);
   }
 
   // Function to create additional subdirectories
@@ -35,6 +35,8 @@ export default async (app: Application) => {
       if (!fs.existsSync(dir.path)) {
         fs.mkdirSync(dir.path, { recursive: true });
         console.log(`${dir.name} directory created:`, dir.path);
+      } else {
+        console.log(`${dir.name} directory is already created:`, dir.path);
       }
     });
   }
@@ -50,7 +52,7 @@ export default async (app: Application) => {
   app.use("/Vandor", VandorRoute);
   app.use("/customer", CustomerRoutes);
   app.use(ShoppingRoutes);
-app.use("/", (req, res) => {
+  app.use("/", (req, res) => {
     res.send("Hi Admin");
   });
   return app;

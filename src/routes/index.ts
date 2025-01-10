@@ -25,7 +25,7 @@ import fs from "fs";
 const imagePath = path.join(__dirname, "../images");
 if (!fs.existsSync(imagePath)) {
   fs.mkdirSync(imagePath, { recursive: true });
-  console.log("Main images directory created:", imagePath);
+  // console.log("Main images directory created:", imagePath);
 }
 
 const imageStorage = multer.diskStorage({
@@ -38,9 +38,6 @@ const imageStorage = multer.diskStorage({
     cb(null, safeFilename);
   },
 });
-
-console.dir(imageStorage);
-
 // Configure multer to handle multiple file uploads under "images"
 export const images = multer({ storage: imageStorage }).array("images", 10);
 
