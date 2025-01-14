@@ -11,6 +11,7 @@ const StartServer = async () => {
   await initializeApp(app);
   app.listen(PORT, () => {
     console.log(`Listening to port ${PORT}`);
+    console.log(`Personal`);
   });
 };
 
