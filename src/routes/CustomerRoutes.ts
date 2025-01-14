@@ -9,6 +9,10 @@ import {
   GetOrderByID,
   GetOrders,
   RequestOtp,
+  CreateCart,
+  GetCart,
+  DeleteCart,
+  DeleteCartItem,
 } from "../controllers";
 import { Authenticate } from "../middlewares";
 
@@ -34,10 +38,13 @@ router.get("/profile", GetCustomerProfile);
 router.patch("/profile", EditCustomerProfile);
 
 //Cart
-
+router.post("/cart", CreateCart);
+router.get("/cart", GetCart);
+router.delete("/cart", DeleteCart);
+router.delete("/cart/:id", DeleteCartItem);
 // Order
 router.post("/create-order", CreateOrder);
-router.get("orders", GetOrders);
-router.get("order/:id", GetOrderByID);
+router.get("/orders", GetOrders);
+router.get("/order/:id", GetOrderByID);
 // Payment
 export { router as CustomerRoutes };

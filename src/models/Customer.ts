@@ -17,6 +17,7 @@ interface CustomerDoc extends Document {
   isActive: string;
   is_deleted: string;
   orders: [OrderDoc];
+  cart: any[];
 }
 
 const CustomerSchema = new Schema(
@@ -37,6 +38,18 @@ const CustomerSchema = new Schema(
       {
         type: Schema.Types.ObjectId,
         ref: "order",
+      },
+    ],
+    // cart: [
+    //   {
+    //     food: { type: Schema.Types.ObjectId, ref: "food", required: true },
+    //     unit: { type: Number, required: true },
+    //   },
+    // ],
+    cart: [
+      {
+        food: { type: Schema.Types.ObjectId, ref: "food", require: true },
+        unit: { type: Number, require: true },
       },
     ],
     isActive: {
