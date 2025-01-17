@@ -523,14 +523,11 @@ export const DeleteCartItem = async (
   const customer = req.user; // Assuming user info is added to the request during authentication
   const { cartItemId } = req.params; // The cart item's _id passed as a route parameter
   if (customer) {
-    console.log(customer._id);
     const profile = await Customer.findById(customer._id);
     if (profile && profile.cart) {
-      const updatedCart = profile.cart.filter(
-        (item) => !item._id.equals(cartItemId)
-      );
-      console.log("updatedCart :", updatedCart);
-      // Save the updated cart back to the profile
+      const updatedCart = profile.cart.filter((item) => {
+        return !item._id.equals(cartItemId);
+      });
       profile.cart = updatedCart;
       await profile.save();
       // const updatedProfile = await profile.save();
