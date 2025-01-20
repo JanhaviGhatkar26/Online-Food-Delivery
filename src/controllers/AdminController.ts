@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { CreateVandorInput } from "../dto";
-import { Vandor } from "../models";
+import { Customer, Vandor } from "../models";
 import { GeneratePassword, GenerateSalt } from "../utility";
 import path from "path";
 import fs from "fs";
@@ -109,4 +109,27 @@ export const GetVandorById = async (
     return res.json(vandorById);
   }
   return res.json({ message: "Vandor data not availale" });
+};
+export const DeleteCustomerAccount = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const customerID = req.params;
+  console.log(customerID);
+  // const customer = req.user;
+  if (customerID?.customerID) {
+    const profile = await Customer.findById(customerID?.customerID);
+    if (!profile) {
+      return res.status(404).json({ message: "Customer profile not found." });
+    }
+    await Customer.findByIdAndUpdate(profile._id, {
+      isActive: "0",
+      is_deleted: "1",
+    });
+    return res.json({ message: "Account Delete successfully." });
+  }
+  return res
+    .status(404)
+    .json({ message: "Something went wrong while Deleting account." });
 };

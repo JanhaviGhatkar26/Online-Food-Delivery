@@ -13,6 +13,7 @@ import {
   GetCart,
   DeleteCart,
   DeleteCartItem,
+  DeactiveMyAcc,
 } from "../controllers";
 import { Authenticate } from "../middlewares";
 
@@ -36,6 +37,7 @@ router.get("/otp", RequestOtp);
 /* ------------------- Profile --------------------- */
 router.get("/profile", GetCustomerProfile);
 router.patch("/profile", EditCustomerProfile);
+router.delete("/deactivate", DeactiveMyAcc);
 
 //Cart
 router.post("/cart", CreateCart);

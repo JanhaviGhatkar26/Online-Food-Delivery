@@ -14,7 +14,6 @@ export default async (app: Application) => {
 
   // Define the main images folder and subdirectories
   const imagePath = path.join(__dirname, "../images");
-  console.log("imagePath :", imagePath);
   const vandorPath = path.join(imagePath, "/Vandor");
   const foodDirPath = path.join(imagePath, "/Food");
 

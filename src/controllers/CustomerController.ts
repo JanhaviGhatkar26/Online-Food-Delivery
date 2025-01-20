@@ -18,6 +18,7 @@ import {
 import { Customer, Food, Order } from "../models";
 import mongoose from "mongoose";
 
+//Customer CRUD
 export const CustomerSignUp = async (
   req: Request,
   res: Response,
@@ -86,7 +87,73 @@ export const CustomerSignUp = async (
     });
   }
   return res.status(400).json("error to signup");
-};
+}; //1st step
+
+export const RequestOtp = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const customer = req.user;
+
+  if (customer) {
+    const profile = await Customer.findById(customer._id);
+
+    if (profile) {
+      const { otp, expiry } = GenerateOTP();
+      profile.otp = otp;
+      profile.otp_expiry = expiry;
+
+      await profile.save();
+      const sendCode = await onRequestOtp(otp, profile.phone);
+
+      if (!sendCode) {
+        return res
+          .status(400)
+          .json({ message: "Failed to verify your phone number" });
+      }
+
+      return res
+        .status(200)
+        .json({ message: "OTP sent to your registered Mobile Number!" });
+    }
+  }
+
+  return res.status(400).json({ msg: "Error with Requesting OTP" });
+}; // 2nd step
+
+export const CustomerVerify = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const { otp } = req.body;
+  const customer = req.user;
+
+  if (customer) {
+    const profile = await Customer.findById(customer._id);
+    if (profile) {
+      if (profile.otp === parseInt(otp) && profile.otp_expiry >= new Date()) {
+        profile.verified = true;
+
+        const updatedCustomerResponse = await profile.save();
+
+        const signature = await GenerateSignature({
+          _id: String(updatedCustomerResponse._id),
+          email: updatedCustomerResponse.email,
+          verified: updatedCustomerResponse.verified,
+        });
+        return res.status(200).json({
+          signature: signature,
+          email: updatedCustomerResponse.email,
+          verified: updatedCustomerResponse.verified,
+        });
+      }
+    }
+  }
+
+  return res.status(400).json({ msg: "Unable to verify Customer" });
+}; // 3rd step
 
 export const CustomerLogin = async (
   req: Request,
@@ -132,73 +199,7 @@ export const CustomerLogin = async (
     }
   }
   return res.status(404).json("Error With Login");
-};
-
-export const CustomerVerify = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const { otp } = req.body;
-  const customer = req.user;
-
-  if (customer) {
-    const profile = await Customer.findById(customer._id);
-    if (profile) {
-      if (profile.otp === parseInt(otp) && profile.otp_expiry >= new Date()) {
-        profile.verified = true;
-
-        const updatedCustomerResponse = await profile.save();
-
-        const signature = await GenerateSignature({
-          _id: String(updatedCustomerResponse._id),
-          email: updatedCustomerResponse.email,
-          verified: updatedCustomerResponse.verified,
-        });
-        return res.status(200).json({
-          signature: signature,
-          email: updatedCustomerResponse.email,
-          verified: updatedCustomerResponse.verified,
-        });
-      }
-    }
-  }
-
-  return res.status(400).json({ msg: "Unable to verify Customer" });
-};
-
-export const RequestOtp = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const customer = req.user;
-
-  if (customer) {
-    const profile = await Customer.findById(customer._id);
-
-    if (profile) {
-      const { otp, expiry } = GenerateOTP();
-      profile.otp = otp;
-      profile.otp_expiry = expiry;
-
-      await profile.save();
-      const sendCode = await onRequestOtp(otp, profile.phone);
-
-      if (!sendCode) {
-        return res
-          .status(400)
-          .json({ message: "Failed to verify your phone number" });
-      }
-
-      return res
-        .status(200)
-        .json({ message: "OTP sent to your registered Mobile Number!" });
-    }
-  }
-
-  return res.status(400).json({ msg: "Error with Requesting OTP" });
-};
+}; //finally you can login
 
 export const GetCustomerProfile = async (
   req: Request,
@@ -269,6 +270,25 @@ export const EditCustomerProfile = async (
     }
   }
   return res.status(400).json({ msg: "Error while Updating Profile" });
+};
+
+export const DeactiveMyAcc = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const customer = req.user;
+  if (customer) {
+    const profile = await Customer.findById(customer._id);
+    if (!profile) {
+      return res.status(404).json({ message: "Customer profile not found." });
+    }
+    await Customer.findByIdAndUpdate(profile._id, { isActive: "0" });
+    return res.json({ message: "Account deactivated successfully." });
+  }
+  return res
+    .status(404)
+    .json({ message: "Something went wrong while deactiving account." });
 };
 
 /*----------------------------------- orders -----------------------------------*/

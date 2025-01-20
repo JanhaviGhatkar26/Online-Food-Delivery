@@ -5,7 +5,8 @@ export default async () => {
     await mongoose
       .connect(MONGO_URL)
       .then((result) => {
-        console.log("Database connection is complete te url is :", MONGO_URL);
+        console.log("Database connection is complete");
+        // console.log("Database connection is complete te url is :", MONGO_URL);
       })
       .catch((err) => {
         console.log("Error from monggose connection", err);
