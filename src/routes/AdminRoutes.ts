@@ -1,16 +1,16 @@
 import express, { Request, Response, NextFunction } from "express";
 import {
-  CreateVandor,
+  CreateVendor,
   DeleteCustomerAccount,
-  GetVandor,
-  GetVandorById,
+  GetVendor,
+  GetVendorById,
 } from "../controllers";
 import { images } from ".";
 const router = express.Router();
 
-router.post("/vandor", images, CreateVandor);
-router.get("/vandor", GetVandor);
-router.get("/vandor/:id", GetVandorById);
+router.post("/vendor", images, CreateVendor);
+router.get("/vendor", GetVendor);
+router.get("/vendor/:id", GetVendorById);
 router.delete("/user/deleteCustomer/:customerID", DeleteCustomerAccount);
 router.get("/", (req: Request, res: Response, next: NextFunction) => {
   res.json({ message: "Hello from  Admin" });

@@ -1,25 +1,25 @@
 import { NextFunction, Request, Response } from "express";
-import { CreateVandorInput } from "../dto";
-import { Customer, Vandor } from "../models";
+import { CreateVendorInput } from "../dto";
+import { Customer, Vendor } from "../models";
 import { GeneratePassword, GenerateSalt } from "../utility";
 import path from "path";
 import fs from "fs";
 
-export const FindVandor = async (
+export const FindVendor = async (
   id: string | undefined,
   email?: string,
   phone?: string
 ) => {
   if (email || phone) {
-    return await Vandor.findOne({
+    return await Vendor.findOne({
       $or: [{ email }, { phone }],
     });
   } else {
-    return await Vandor.findById(id);
+    return await Vendor.findById(id);
   }
 };
 
-export const CreateVandor = async (
+export const CreateVendor = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -34,18 +34,18 @@ export const CreateVandor = async (
     password,
     pincode,
     phone,
-  } = <CreateVandorInput>req.body;
+  } = <CreateVendorInput>req.body;
 
-  const existVandor = await FindVandor(email, phone);
-  if (existVandor !== null) {
+  const existVendor = await FindVendor(email, phone);
+  if (existVendor !== null) {
     return res.json({
-      message: "A Vandor is already exist with this email ID or phone number",
+      message: "A Vendor is already exist with this email ID or phone number",
     });
   }
   const salt = await GenerateSalt();
   const userPassword = await GeneratePassword(password, salt);
   // crypt password
-  const createdVandor = await Vandor.create({
+  const createdVendor = await Vendor.create({
     name: name,
     address: address,
     pincode: pincode,
@@ -60,55 +60,55 @@ export const CreateVandor = async (
     coverImage: [],
     foods: [],
   });
-  const vandorCoverImgPath = path.join(
+  const vendorCoverImgPath = path.join(
     __dirname,
     "..",
     "images",
-    "Vandor",
-    String(createdVandor._id)
+    "Vendor",
+    String(createdVendor._id)
   );
 
-  if (!fs.existsSync(vandorCoverImgPath)) {
-    fs.mkdirSync(vandorCoverImgPath, { recursive: true });
+  if (!fs.existsSync(vendorCoverImgPath)) {
+    fs.mkdirSync(vendorCoverImgPath, { recursive: true });
   }
 
   const files = req.files as Express.Multer.File[]; // Adjusted for types
 
   let images: string[] = [];
   files.forEach((file: Express.Multer.File) => {
-    const filePath = path.join(vandorCoverImgPath, file.filename);
+    const filePath = path.join(vendorCoverImgPath, file.filename);
     fs.renameSync(file.path, filePath); // Move the uploaded file to the new folder
     images.push(file.filename);
   });
 
-  createdVandor.coverImage.push(...images);
-  const saveResult = await createdVandor.save();
+  createdVendor.coverImage.push(...images);
+  const saveResult = await createdVendor.save();
   return res.json(saveResult);
 };
 
-export const GetVandor = async (
+export const GetVendor = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const vandors = await Vandor.find({ is_deleted: "0" });
-  if (vandors !== null) {
-    return res.json(vandors);
+  const vendors = await Vendor.find({ is_deleted: "0" });
+  if (vendors !== null) {
+    return res.json(vendors);
   }
-  return res.json({ message: "Vandors data not availale" });
+  return res.json({ message: "Vendors data not availale" });
 };
 
-export const GetVandorById = async (
+export const GetVendorById = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const vandorId = req.params.id;
-  const vandorById = await FindVandor(vandorId);
-  if (vandorById !== null) {
-    return res.json(vandorById);
+  const vendorId = req.params.id;
+  const vendorById = await FindVendor(vendorId);
+  if (vendorById !== null) {
+    return res.json(vendorById);
   }
-  return res.json({ message: "Vandor data not availale" });
+  return res.json({ message: "Vendor data not availale" });
 };
 export const DeleteCustomerAccount = async (
   req: Request,

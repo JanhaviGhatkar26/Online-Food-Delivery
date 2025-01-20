@@ -1,45 +1,45 @@
 import { Request, Response, NextFunction } from "express";
-import { CreateFoodInput, EditVandorInputs, VandorLoginInputs } from "../dto";
-import { FindVandor } from "./AdminController";
+import { CreateFoodInput, EditVendorInputs, VendorLoginInputs } from "../dto";
+import { FindVendor } from "./AdminController";
 import { GenerateSignature, ValidatePassword } from "../utility";
 import { Food } from "../models";
 import path from "path";
 import fs from "fs";
 
-//Login the vandor by email and password
-export const VandorLogin = async (
+//Login the vendor by email and password
+export const VendorLogin = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const { email, password } = <VandorLoginInputs>req.body;
+  const { email, password } = <VendorLoginInputs>req.body;
   console.log(email, password);
-  const exsitingVandor = await FindVandor("", email);
-  console.log("exsitingVandor:", exsitingVandor);
-  if (exsitingVandor !== null) {
-    if (exsitingVandor.is_deleted !== "0" || exsitingVandor.isActive !== "1") {
+  const exsitingVendor = await FindVendor("", email);
+  console.log("exsitingVendor:", exsitingVendor);
+  if (exsitingVendor !== null) {
+    if (exsitingVendor.is_deleted !== "0" || exsitingVendor.isActive !== "1") {
       return res
         .status(404)
         .json({ message: "Vendor is deleted or inactive." });
     }
     const validation = await ValidatePassword(
       password,
-      exsitingVandor?.password,
-      exsitingVandor?.salt
+      exsitingVendor?.password,
+      exsitingVendor?.salt
     );
     if (validation) {
       const signature = await GenerateSignature({
-        _id: String(exsitingVandor?._id),
-        name: exsitingVandor?.name,
-        email: exsitingVandor?.email,
-        foodType: exsitingVandor?.foodType,
+        _id: String(exsitingVendor?._id),
+        name: exsitingVendor?.name,
+        email: exsitingVendor?.email,
+        foodType: exsitingVendor?.foodType,
       });
       return res.json({
         message: "Logged in sucsefully",
-        _id: String(exsitingVandor?._id),
-        name: exsitingVandor?.name,
-        email: exsitingVandor?.email,
-        foodType: exsitingVandor?.foodType,
+        _id: String(exsitingVendor?._id),
+        name: exsitingVendor?.name,
+        email: exsitingVendor?.email,
+        foodType: exsitingVendor?.foodType,
         token: signature,
       });
     } else {
@@ -49,44 +49,44 @@ export const VandorLogin = async (
   return res.json({ message: "Login credentials not valid" });
 };
 
-//Get the vandor profile detail
-export const GetVandorProfile = async (
+//Get the vendor profile detail
+export const GetVendorProfile = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   const user = req.user;
   if (user) {
-    const exsitingVandor = await FindVandor(user._id);
-    return res.json(exsitingVandor);
+    const exsitingVendor = await FindVendor(user._id);
+    return res.json(exsitingVendor);
   }
-  return res.json({ message: "Vandor information Not Found" });
+  return res.json({ message: "Vendor information Not Found" });
 };
 
-//Update the vandor profile details
-export const UpdateVandorProfile = async (
+//Update the vendor profile details
+export const UpdateVendorProfile = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const { address, phone, foodType, name } = <EditVandorInputs>req.body;
+  const { address, phone, foodType, name } = <EditVendorInputs>req.body;
   const user = req.user;
   if (user) {
-    const exsitingVandor = await FindVandor(user._id);
-    if (exsitingVandor !== null) {
-      exsitingVandor.name = name;
-      exsitingVandor.address = address;
-      exsitingVandor.phone = phone;
-      exsitingVandor.foodType = foodType;
-      const savedVandor = await exsitingVandor.save();
-      return res.json(savedVandor);
+    const exsitingVendor = await FindVendor(user._id);
+    if (exsitingVendor !== null) {
+      exsitingVendor.name = name;
+      exsitingVendor.address = address;
+      exsitingVendor.phone = phone;
+      exsitingVendor.foodType = foodType;
+      const savedVendor = await exsitingVendor.save();
+      return res.json(savedVendor);
     }
-    return res.json(exsitingVandor);
+    return res.json(exsitingVendor);
   }
-  return res.json({ message: "Vandor information Not Found" });
+  return res.json({ message: "Vendor information Not Found" });
 };
 
-export const UpdateVandorCoverImage = async (
+export const UpdateVendorCoverImage = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -94,50 +94,50 @@ export const UpdateVandorCoverImage = async (
   const user = req.user;
 
   if (user) {
-    const vandor = await FindVandor(user._id);
+    const vendor = await FindVendor(user._id);
 
-    if (vandor !== null) {
-      console.log({ vandor });
-      const vandorCoverImgPath = path.join(
+    if (vendor !== null) {
+      console.log({ vendor });
+      const vendorCoverImgPath = path.join(
         __dirname,
         "..",
         "images",
-        "Vandor",
-        String(vandor._id)
+        "Vendor",
+        String(vendor._id)
       );
 
-      if (!fs.existsSync(vandorCoverImgPath)) {
-        fs.mkdirSync(vandorCoverImgPath, { recursive: true });
+      if (!fs.existsSync(vendorCoverImgPath)) {
+        fs.mkdirSync(vendorCoverImgPath, { recursive: true });
       }
 
       const files = req.files as Express.Multer.File[]; // Adjusted for types
 
       let images: string[] = [];
       files.forEach((file: Express.Multer.File) => {
-        const filePath = path.join(vandorCoverImgPath, file.filename);
+        const filePath = path.join(vendorCoverImgPath, file.filename);
         fs.renameSync(file.path, filePath); // Move the uploaded file to the new folder
         images.push(file.filename);
       });
 
       console.log(images);
-      vandor.coverImage.push(...images); // Update the coverImage field
+      vendor.coverImage.push(...images); // Update the coverImage field
 
-      const saveResult = await vandor.save();
+      const saveResult = await vendor.save();
 
       return res.json(saveResult);
     }
   }
 };
 
-//Update the vandor service status
-export const UpdateVandorService = async (
+//Update the vendor service status
+export const UpdateVendorService = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   const user = req.user;
   if (user) {
-    const existingVendor = await FindVandor(user._id);
+    const existingVendor = await FindVendor(user._id);
     if (existingVendor !== null) {
       existingVendor.serviceAvailable = !existingVendor.serviceAvailable;
       const saveResult = await existingVendor.save();
@@ -160,11 +160,11 @@ export const AddFood = async (
   >req.body;
 
   if (user) {
-    const vandor = await FindVandor(user._id);
+    const vendor = await FindVendor(user._id);
 
-    if (vandor !== null) {
+    if (vendor !== null) {
       const food = await Food.create({
-        vandorId: vandor._id,
+        vendorId: vendor._id,
         name: name,
         description: description,
         category: category,
@@ -175,8 +175,8 @@ export const AddFood = async (
         images: [], // Initialize an empty array for images
       });
 
-      vandor.foods.push(food);
-      const result = await vandor.save();
+      vendor.foods.push(food);
+      const result = await vendor.save();
       const foodImagePath = path.join(
         __dirname,
         "..",
@@ -227,15 +227,15 @@ export const AddFood = async (
 //   >req.body;
 
 //   if (user) {
-//     const vandor = await FindVandor(user._id);
+//     const vendor = await FindVendor(user._id);
 
-//     if (vandor !== null) {
+//     if (vendor !== null) {
 //       const files = req.files as [Express.Multer.File];
 
 //       const images = files.map((file: Express.Multer.File) => file.filename);
 
 //       const food = await Food.create({
-//         vandorId: vandor._id,
+//         vendorId: vendor._id,
 //         name: name,
 //         description: description,
 //         category: category,
@@ -246,8 +246,8 @@ export const AddFood = async (
 //         images: images,
 //       });
 
-//       vandor.foods.push(food);
-//       const result = await vandor.save();
+//       vendor.foods.push(food);
+//       const result = await vendor.save();
 //       return res.json(result);
 //     }
 //   }
@@ -262,7 +262,7 @@ export const GetFoods = async (
 ) => {
   const user = req.user;
   if (user) {
-    const foods = await Food.find({ vandorId: user._id });
+    const foods = await Food.find({ vendorId: user._id });
     if (foods !== null) {
       return res.json(foods);
     }

@@ -13,7 +13,7 @@
 // export const images = multer({ storage: imageStorage }).array("images", 10); // Expecting an array of files under "images"
 
 // export * from "./AdminRoutes";
-// export * from "./VandorRoutes";
+// export * from "./VendorRoutes";
 // export * from "./ShoppingRoutes";
 // export * from "./CustomerRoutes";
 
@@ -42,6 +42,6 @@ const imageStorage = multer.diskStorage({
 export const images = multer({ storage: imageStorage }).array("images", 10);
 
 export * from "./AdminRoutes";
-export * from "./VandorRoutes";
+export * from "./VendorRoutes";
 export * from "./ShoppingRoutes";
 export * from "./CustomerRoutes";

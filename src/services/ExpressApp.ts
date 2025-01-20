@@ -2,7 +2,7 @@ import express, { Application } from "express";
 import {
   AdminRoute,
   ShoppingRoutes,
-  VandorRoute,
+  VendorRoute,
   CustomerRoutes,
 } from "../routes";
 import path from "path";
@@ -14,7 +14,7 @@ export default async (app: Application) => {
 
   // Define the main images folder and subdirectories
   const imagePath = path.join(__dirname, "../images");
-  const vandorPath = path.join(imagePath, "/Vandor");
+  const vendorPath = path.join(imagePath, "/Vendor");
   const foodDirPath = path.join(imagePath, "/Food");
 
   // Ensure the main images directory exists globally
@@ -26,7 +26,7 @@ export default async (app: Application) => {
   // Function to create additional subdirectories
   function checkAndCreateDirectories() {
     const directoriesToCheck = [
-      { path: vandorPath, name: "Vandor" },
+      { path: vendorPath, name: "Vendor" },
       { path: foodDirPath, name: "Food" },
     ];
 
@@ -40,7 +40,7 @@ export default async (app: Application) => {
     });
   }
 
-  // Create subdirectories for Vandor and Food
+  // Create subdirectories for Vendor and Food
   checkAndCreateDirectories();
 
   // Serve static files from the images directory
@@ -48,7 +48,7 @@ export default async (app: Application) => {
 
   // Register routes
   app.use("/admin", AdminRoute);
-  app.use("/Vandor", VandorRoute);
+  app.use("/Vendor", VendorRoute);
   app.use("/customer", CustomerRoutes);
   app.use(ShoppingRoutes);
   app.use("/", (req, res) => {

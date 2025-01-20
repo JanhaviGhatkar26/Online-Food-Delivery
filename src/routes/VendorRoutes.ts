@@ -2,11 +2,11 @@ import express, { Request, Response, NextFunction } from "express";
 import {
   AddFood,
   GetFoods,
-  GetVandorProfile,
-  UpdateVandorCoverImage,
-  UpdateVandorProfile,
-  UpdateVandorService,
-  VandorLogin,
+  GetVendorProfile,
+  UpdateVendorCoverImage,
+  UpdateVendorProfile,
+  UpdateVendorService,
+  VendorLogin,
 } from "../controllers";
 import { Authenticate } from "../middlewares";
 const router = express.Router();
@@ -28,19 +28,25 @@ import { images } from ".";
 
 // const images = multer({ storage: imageStorage }).array("images", 10); // Expecting an array of files under "images"
 
-router.post("/login", VandorLogin);
+router.post("/login", VendorLogin);
 
 router.use(Authenticate);
-router.get("/profile", GetVandorProfile);
-router.patch("/profile", UpdateVandorProfile);
-router.patch("/service", UpdateVandorService);
-router.patch("/coverimage", images, UpdateVandorCoverImage);
-router.post("/food", images, AddFood);
+router.get("/profile", GetVendorProfile);
+router.patch("/profile", UpdateVendorProfile);
+router.patch("/service", UpdateVendorService);
+router.patch("/coverimage", images, UpdateVendorCoverImage);
+
 // router.post("/food", AddFood);
+router.post("/food", images, AddFood);
 router.get("/foods", GetFoods);
 
+//Orders
+router.get("/orders");
+router.put("/order/:id/process");
+router.get("/order/:id");
+
 router.get("/", (req: Request, res: Response, next: NextFunction) => {
-  res.json({ message: "Hello from  Vandor" });
+  res.json({ message: "Hello from  Vendor" });
 });
 
-export { router as VandorRoute };
+export { router as VendorRoute };
