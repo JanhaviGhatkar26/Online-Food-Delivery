@@ -73,3 +73,7 @@ export class OrderInputs {
   _id: string;
   unit: number;
 }
+export class CartInputs {
+  _id: string;
+  unit: number;
+}

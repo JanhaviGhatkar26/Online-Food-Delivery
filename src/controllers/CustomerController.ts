@@ -1,6 +1,7 @@
 import { plainToClass } from "class-transformer";
 import { NextFunction, Request, Response } from "express";
 import {
+  CartInputs,
   CreateCustomerInput,
   CustomerLoginInputs,
   EditCustomerProfileInputs,
@@ -17,6 +18,7 @@ import {
 } from "../utility";
 import { Customer, Food, Order } from "../models";
 import mongoose from "mongoose";
+import { Cart } from "../models/Cart";
 
 //Customer CRUD
 export const CustomerSignUp = async (
@@ -399,117 +401,139 @@ export const GetOrderByID = async (
 //   res: Response,
 //   next: NextFunction
 // ) => {
-//   // grab the lgin in customer;
 //   const customer = req.user;
+
 //   if (customer) {
 //     const profile = await Customer.findById(customer._id).populate("cart.food");
 //     let cartItems = Array();
+
 //     const { _id, unit } = <OrderInputs>req.body;
+
 //     const food = await Food.findById(_id);
+
 //     if (food) {
 //       if (profile != null) {
-//         //check for cart item
 //         cartItems = profile.cart;
+
+//         let message = "Product added successfully.";
+
 //         if (cartItems.length > 0) {
-//           //check and update
-//           let existFoodItem = cartItems.filter((item) => {
-//             item?.food?._id.toString() === _id;
-//           });
-//           if (existFoodItem.length > 0) {
-//             const index = cartItems.indexOf(existFoodItem[0]);
-//             if (unit > 0) {
-//               cartItems[index] = { food, unit };
-//             } else {
-//               cartItems.splice(index, 1);
+//           // Check if the item exists in the cart
+//           let existFoodItems = cartItems.filter(
+//             (item) => item.food._id.toString() === _id
+//           );
+//           if (existFoodItems.length > 0) {
+//             const index = cartItems.indexOf(existFoodItems[0]);
+
+//             // Ensure unit is valid (minimum 1)
+//             let validUnit = unit > 0 ? unit : 1;
+//             if (unit === 0) {
+//               message =
+//                 "Minimum quantity should be 1. Product added successfully with 1 quantity.";
 //             }
+
+//             // Update item in the cart
+//             cartItems[index] = { food, unit: validUnit };
 //           } else {
-//             cartItems.push({ food, unit });
+//             // Add new item with valid unit (default 1 if unit === 0)
+//             let addedUnit = unit > 0 ? unit : 1;
+//             if (unit === 0) {
+//               message =
+//                 "Minimum quantity should be 1. Product added successfully with 1 quantity.";
+//             }
+//             cartItems.push({ food, unit: addedUnit });
 //           }
 //         } else {
-//           //add new item to the cart
-//           cartItems.push({ food, unit });
+//           // Add new item with valid unit (default 1 if unit === 0)
+//           let addedUnit = unit > 0 ? unit : 1;
+//           if (unit === 0) {
+//             message =
+//               "Minimum quantity should be 1. Product added successfully with 1 quantity.";
+//           }
+//           cartItems.push({ food, unit: addedUnit });
 //         }
+
 //         if (cartItems) {
 //           profile.cart = cartItems as any;
-//           const cartresult = await profile.save();
-//           console.log("cartresult", cartresult);
-//           return res.status(200).json(cartresult?.cart);
+//           const cartResult = await profile.save();
+//           return res.status(200).json({
+//             msg: message,
+//             cart: cartResult.cart,
+//           });
 //         }
 //       }
 //     }
 //   }
-//   return res.status(400).json({ msg: "Error while Placing in cart" });
+
+//   return res.status(404).json({ msg: "Unable to add to cart!" });
 // };
+
 export const CreateCart = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   const customer = req.user;
+  if (!customer) {
+    return res.status(401).json({ meg: "Session is expired" });
+  }
+  const { _id, unit } = <CartInputs>req.body;
+  const food = await Food.findById(_id);
+  if (!food) {
+    return res.status(404).json({ msg: "Food item not found!" });
+  }
+  const vendorId = food.vendorId; // extract vednor id from food item
+  let message = "Product added successfully";
 
-  if (customer) {
-    const profile = await Customer.findById(customer._id).populate("cart.food");
-    let cartItems = Array();
-
-    const { _id, unit } = <OrderInputs>req.body;
-
-    const food = await Food.findById(_id);
-
-    if (food) {
-      if (profile != null) {
-        cartItems = profile.cart;
-
-        let message = "Product added successfully.";
-
-        if (cartItems.length > 0) {
-          // Check if the item exists in the cart
-          let existFoodItems = cartItems.filter(
-            (item) => item.food._id.toString() === _id
-          );
-          if (existFoodItems.length > 0) {
-            const index = cartItems.indexOf(existFoodItems[0]);
-
-            // Ensure unit is valid (minimum 1)
-            let validUnit = unit > 0 ? unit : 1;
-            if (unit === 0) {
-              message =
-                "Minimum quantity should be 1. Product added successfully with 1 quantity.";
-            }
-
-            // Update item in the cart
-            cartItems[index] = { food, unit: validUnit };
-          } else {
-            // Add new item with valid unit (default 1 if unit === 0)
-            let addedUnit = unit > 0 ? unit : 1;
-            if (unit === 0) {
-              message =
-                "Minimum quantity should be 1. Product added successfully with 1 quantity.";
-            }
-            cartItems.push({ food, unit: addedUnit });
-          }
-        } else {
-          // Add new item with valid unit (default 1 if unit === 0)
-          let addedUnit = unit > 0 ? unit : 1;
-          if (unit === 0) {
-            message =
-              "Minimum quantity should be 1. Product added successfully with 1 quantity.";
-          }
-          cartItems.push({ food, unit: addedUnit });
-        }
-
-        if (cartItems) {
-          profile.cart = cartItems as any;
-          const cartResult = await profile.save();
-          return res.status(200).json({
-            msg: message,
-            cart: cartResult.cart,
-          });
-        }
-      }
-    }
+  //fetch or create the cart for logged in customer;
+  let cart = await Cart.findOne({ customerId: customer?._id });
+  if (!cart) {
+    cart = new Cart({
+      customerId: customer?._id,
+      vendorCarts: [],
+    });
   }
 
-  return res.status(404).json({ msg: "Unable to add to cart!" });
+  // check if this vendor's cart already exist in the customer's cart
+  let vendorCart = cart.vendorCarts.find(
+    (vendorC) => vendorC.vendorId.toString() === vendorId
+  );
+  if (vendorCart) {
+    let existingFood = vendorCart.items.find(
+      (item) => item.food.toString() === _id
+    );
+    if (existingFood) {
+      // Increase quantity instead of duplicating the item
+      existingFood.unit += unit > 0 ? unit : 1;
+    } else {
+      // add new item to this vendor's cart
+      vendorCart.items.push({ food: _id, unit: unit > 0 ? unit : 1 });
+    }
+    // Recalculate total amount for this vendor
+    const foodIds = vendorCart.items.map((item) => item.food); // Extract all food IDs
+
+    // Fetch all food items in the cart from the database
+    const foodItems = await Food.find({ _id: { $in: foodIds } });
+
+    vendorCart.totalAmount = vendorCart.items.reduce((sum, item) => {
+      const foodItem = foodItems.find(
+        (f) => f._id.toString() === item.food.toString()
+      ); // Find matching food
+      return sum + (foodItem ? foodItem.price * item.unit : 0);
+    }, 0);
+  } else {
+    // Vendor cart does not exist, create a new vendor-wise cart
+    cart.vendorCarts.push({
+      vendorId,
+      items: [{ food: _id, unit: unit > 0 ? unit : 1 }],
+      totalAmount: food.price * (unit > 0 ? unit : 1),
+    });
+  }
+  await cart.save();
+  return res.status(200).json({
+    msg: message,
+    cart,
+  });
 };
 
 export const GetCart = async (
