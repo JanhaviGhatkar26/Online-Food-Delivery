@@ -7,6 +7,7 @@ export const GetFoodAvailability = async (
   next: NextFunction
 ) => {
   const pincode = req.params.pincode;
+
   const result = await Vendor.find({
     pincode: pincode,
     serviceAvailable: true,

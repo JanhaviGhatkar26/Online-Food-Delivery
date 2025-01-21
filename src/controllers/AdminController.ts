@@ -45,7 +45,7 @@ export const CreateVendor = async (
   const salt = await GenerateSalt();
   const userPassword = await GeneratePassword(password, salt);
   // crypt password
-  const createdVendor = await Vendor.create({
+  const vendorobj = {
     name: name,
     address: address,
     pincode: pincode,
@@ -59,7 +59,8 @@ export const CreateVendor = async (
     serviceAvailable: false,
     coverImage: [],
     foods: [],
-  });
+  };
+  const createdVendor = await Vendor.create(vendorobj);
   const vendorCoverImgPath = path.join(
     __dirname,
     "..",

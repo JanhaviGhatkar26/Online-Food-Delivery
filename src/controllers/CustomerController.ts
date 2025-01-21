@@ -305,16 +305,20 @@ export const CreateOrder = async (
     const profile = await Customer.findById(customer._id);
     // Grab order items fromrequest ({id:xx , unit:xx});
     const cart = <[OrderInputs]>req.body;
+    console.log("cart :", cart);
     let cartItems = Array();
     let netAmount = 0.0;
+    let vendorId;
     // Calculate order amount
     const foods = await Food.find()
       .where("_id")
       .in(cart.map((item) => item._id))
       .exec();
+    console.log("foods :", foods);
     foods.map((food) => {
       cart.map(({ _id, unit }) => {
         if (food._id == _id) {
+          vendorId = food.vendorId;
           (netAmount += food.price * unit),
             cartItems.push({ food: food._id, unit });
         }
@@ -324,30 +328,41 @@ export const CreateOrder = async (
       return res.status(400).json({ msg: "No valid items in the cart" });
     }
     // Create order with item description and note of customer\
+    console.log("vendorId :", vendorId);
     if (cartItems) {
       let orderObj = {
         orderID: orderID,
+        vendorId: vendorId,
         items: cartItems,
         totalAmount: netAmount,
         orderDate: Date(),
         paidThrough: "COD",
         paymentResponse: "",
         orderStatus: "Waiting",
+        remarks: "",
+        deliveryId: "",
+        applierdOffer: false,
+        offerId: null,
+        readyTime: 45,
       };
-      // console.log("orderObj :", orderObj);
+      console.log("cartItems :", cartItems);
+      console.log("profile.cart :", profile.cart);
+
       // return res.status(200).json(orderObj);
       const currentOrder = await Order.create(orderObj);
       if (currentOrder) {
         console.log("currentOrder :", currentOrder);
+        profile.cart = [] as any;
         profile?.orders.push(currentOrder);
-        await profile.save();
-        return res.status(200).json(currentOrder);
+        const UpdatedProfile = await profile.save();
+        return res.status(200).json(UpdatedProfile);
       }
     }
     // Finally update ordersto user account
   }
   return res.status(400).json({ msg: "Error while Placing Order" });
 };
+
 export const GetOrders = async (
   req: Request,
   res: Response,
