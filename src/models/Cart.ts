@@ -9,11 +9,13 @@ export interface CartDoc extends Document {
         {
           food: string;
           unit: number;
+          _id?: string;
         }
       ];
       totalAmount: number;
     }
   ];
+  is_deleted: string;
 }
 
 const CartSchema = new Schema(
@@ -39,6 +41,11 @@ const CartSchema = new Schema(
         totalAmount: { type: Number, required: true, default: 0 },
       },
     ],
+    is_deleted: {
+      type: String,
+      enum: ["1", "0"], // Restrict values to '1' deleted or '0' No deleted
+      default: "0", // Set the default value to '1'
+    },
   },
   {
     toJSON: {

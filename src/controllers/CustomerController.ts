@@ -1,5 +1,5 @@
 import { plainToClass } from "class-transformer";
-import { NextFunction, Request, Response } from "express";
+import { json, NextFunction, Request, Response } from "express";
 import {
   CartInputs,
   CreateCustomerInput,
@@ -475,40 +475,53 @@ export const CreateCart = async (
 ) => {
   const customer = req.user;
   if (!customer) {
-    return res.status(401).json({ meg: "Session is expired" });
+    return res.status(401).json({ msg: "Session is expired" });
   }
+
   const { _id, unit } = <CartInputs>req.body;
   const food = await Food.findById(_id);
   if (!food) {
     return res.status(404).json({ msg: "Food item not found!" });
   }
-  const vendorId = food.vendorId; // extract vednor id from food item
+
+  const vendorId = food.vendorId; // Extract vendor ID from food item
   let message = "Product added successfully";
 
-  //fetch or create the cart for logged in customer;
+  // Fetch the cart (even if deleted)
   let cart = await Cart.findOne({ customerId: customer?._id });
+
+  // If cart exists but is deleted, reactivate it
+  if (cart && cart.is_deleted === "1") {
+    cart.is_deleted = "0"; // Reactivate the cart
+  }
+
+  // If no cart exists, create a new one
   if (!cart) {
     cart = new Cart({
       customerId: customer?._id,
       vendorCarts: [],
+      is_deleted: "0",
     });
   }
 
-  // check if this vendor's cart already exist in the customer's cart
+  // Check if this vendor's cart already exists in the customer's cart
   let vendorCart = cart.vendorCarts.find(
     (vendorC) => vendorC.vendorId.toString() === vendorId
   );
+
   if (vendorCart) {
     let existingFood = vendorCart.items.find(
       (item) => item.food.toString() === _id
     );
+
     if (existingFood) {
       // Increase quantity instead of duplicating the item
       existingFood.unit += unit > 0 ? unit : 1;
     } else {
-      // add new item to this vendor's cart
+      // Add new item to this vendor's cart
       vendorCart.items.push({ food: _id, unit: unit > 0 ? unit : 1 });
     }
+
     // Recalculate total amount for this vendor
     const foodIds = vendorCart.items.map((item) => item.food); // Extract all food IDs
 
@@ -529,6 +542,7 @@ export const CreateCart = async (
       totalAmount: food.price * (unit > 0 ? unit : 1),
     });
   }
+
   await cart.save();
   return res.status(200).json({
     msg: message,
@@ -544,10 +558,12 @@ export const GetCart = async (
   const customer = req.user;
 
   if (customer) {
-    const profile = await Customer.findById(customer._id).populate("cart.food");
-    if (profile) {
-      return res.status(200).json(profile?.cart);
+    const cart = await Cart.find({ customerId: customer._id, is_deleted: "0" });
+    // console.log("cart :", cart[0]?.vendorCarts);
+    if (cart) {
+      return res.status(200).json(cart[0]?.vendorCarts);
     }
+    return res.status(404).json({ msg: "Cart is empty!" });
   }
   return res.status(404).json({ msg: "Cart is empty!" });
 };
@@ -559,19 +575,22 @@ export const DeleteCart = async (
   const customer = req.user;
 
   if (customer) {
-    const profile = await Customer.findById(customer._id)
-      .populate("cart.food")
-      .exec();
-
-    if (profile != null) {
-      profile.cart = [] as any;
-      const cartResult = await profile.save();
-
-      return res.status(200).json(cartResult);
+    const cart = await Cart.find({ customerId: customer._id });
+    if (cart != null) {
+      await Cart.findByIdAndUpdate(cart[0]._id, { is_deleted: "1" });
+      // cart.cart = [] as any;
+      // const cartResult = await profile.save();
+      return res.status(200).json({
+        message:
+          "Your cart has been emptied successfully! Feeling hungry? Order now and enjoy your meal!",
+      });
     }
   }
 
-  return res.status(400).json({ message: "cart is Already Empty!" });
+  return res.status(400).json({
+    message:
+      "Your cart is already empty! Hungry? Explore delicious meals and add your favorites to the cart.",
+  });
 };
 
 export const DeleteCartItem = async (
@@ -579,25 +598,277 @@ export const DeleteCartItem = async (
   res: Response,
   next: NextFunction
 ) => {
-  const customer = req.user; // Assuming user info is added to the request during authentication
-  const { cartItemId } = req.params; // The cart item's _id passed as a route parameter
-  if (customer) {
-    const profile = await Customer.findById(customer._id);
-    if (profile && profile.cart) {
-      const updatedCart = profile.cart.filter((item) => {
-        return !item._id.equals(cartItemId);
-      });
-      profile.cart = updatedCart;
-      await profile.save();
-      // const updatedProfile = await profile.save();
-      const updatedProfile = await Customer.findById(customer._id);
-      return res.status(200).json({
-        message: "Cart item deleted successfully.",
-        cart: updatedProfile.cart,
-      });
-    }
-  }
-  // Find the customer by their ID
+  try {
+    const customer = req.user;
+    const { vendorId, cartItemId } = req.params;
+    console.log(
+      "🛒 Deleting from Cart - Vendor:",
+      vendorId,
+      "Item:",
+      cartItemId || "All"
+    );
+    const CustomerCart = await Cart.findOne({
+      customerId: customer?._id,
+      is_deleted: "0",
+    });
 
-  return res.status(404).json({ message: "Cart item not found." });
+    if (vendorId && cartItemId) {
+      const cart = await Cart.findOne({
+        customerId: customer?._id,
+        "vendorCarts.vendorId": vendorId, // Ensure vendor exists
+      });
+
+      if (!cart) {
+        return res.status(200).json({
+          msg: "✅ No vendor found",
+        });
+      }
+      const vendorCart = cart.vendorCarts.find((vendor) => {
+        return vendor.vendorId.toString() === vendorId;
+      });
+      if (!vendorCart) {
+        return res.status(404).json("Not found");
+      }
+      const itemExists = vendorCart.items.filter((item) => {
+        return item._id.toString() === cartItemId;
+      });
+      console.log("itemExists :", itemExists);
+      if (itemExists.length <= 0) {
+        return res
+          .status(400)
+          .json({ msg: "Item not found under the specified vendor!" });
+      }
+      if (vendorCart && itemExists.length >= 0) {
+        const pipelineForItemManipulate = [
+          {
+            $match: {
+              customerId: new mongoose.Types.ObjectId(customer?._id),
+              "vendorCarts.vendorId": new mongoose.Types.ObjectId(vendorId),
+              "vendorCarts.items._id": new mongoose.Types.ObjectId(cartItemId),
+            },
+          },
+          {
+            $set: {
+              foodIdToDelete: {
+                $getField: {
+                  input: {
+                    $arrayElemAt: [
+                      {
+                        $reduce: {
+                          input: "$vendorCarts",
+                          initialValue: [],
+                          in: {
+                            $concatArrays: [
+                              "$$value",
+                              {
+                                $filter: {
+                                  input: "$$this.items",
+                                  as: "item",
+                                  cond: {
+                                    $eq: [
+                                      "$$item._id",
+                                      new mongoose.Types.ObjectId(cartItemId),
+                                    ],
+                                  },
+                                },
+                              },
+                            ],
+                          },
+                        },
+                      },
+                      0,
+                    ],
+                  },
+                  field: "food",
+                },
+              },
+            },
+          },
+          {
+            $lookup: {
+              from: "foods",
+              localField: "foodIdToDelete",
+              foreignField: "_id",
+              pipeline: [
+                {
+                  $match: {
+                    is_deleted: "0",
+                  },
+                },
+              ],
+              as: "foodData",
+            },
+          },
+          {
+            $set: {
+              foodPriceToDeduct: {
+                $getField: {
+                  input: {
+                    $arrayElemAt: ["$foodData", 0],
+                  },
+                  field: "price",
+                },
+              },
+            },
+          },
+          {
+            $set: {
+              vendorCarts: {
+                $map: {
+                  input: "$vendorCarts",
+                  as: "vendor",
+                  in: {
+                    $mergeObjects: [
+                      "$$vendor",
+                      {
+                        items: {
+                          $filter: {
+                            input: "$$vendor.items",
+                            as: "item",
+                            cond: {
+                              $ne: [
+                                "$$item._id",
+                                new mongoose.Types.ObjectId(cartItemId),
+                              ],
+                            },
+                          },
+                        },
+                      },
+                      {
+                        totalAmount: {
+                          $cond: {
+                            if: {
+                              $gt: [
+                                {
+                                  $size: {
+                                    $filter: {
+                                      input: "$$vendor.items",
+                                      as: "item",
+                                      cond: {
+                                        $eq: [
+                                          "$$item._id",
+                                          new mongoose.Types.ObjectId(
+                                            cartItemId
+                                          ),
+                                        ],
+                                      },
+                                    },
+                                  },
+                                },
+                                0,
+                              ],
+                            },
+                            then: {
+                              $subtract: [
+                                "$$vendor.totalAmount",
+                                {
+                                  $multiply: [
+                                    "$foodPriceToDeduct",
+                                    {
+                                      $getField: {
+                                        input: {
+                                          $arrayElemAt: [
+                                            {
+                                              $filter: {
+                                                input: "$$vendor.items",
+                                                as: "item",
+                                                cond: {
+                                                  $eq: [
+                                                    "$$item._id",
+                                                    new mongoose.Types.ObjectId(
+                                                      cartItemId
+                                                    ),
+                                                  ],
+                                                },
+                                              },
+                                            },
+                                            0,
+                                          ],
+                                        },
+                                        field: "unit",
+                                      },
+                                    },
+                                  ],
+                                },
+                              ],
+                            },
+                            else: "$$vendor.totalAmount",
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+          {
+            $set: {
+              vendorCarts: {
+                $filter: {
+                  input: "$vendorCarts",
+                  as: "vendor",
+                  cond: {
+                    $gt: [
+                      {
+                        $size: "$$vendor.items",
+                      },
+                      0,
+                    ],
+                  },
+                },
+              },
+            },
+          },
+          {
+            $set: {
+              is_deleted: {
+                $cond: {
+                  if: {
+                    $eq: [
+                      {
+                        $size: "$vendorCarts",
+                      },
+                      0,
+                    ],
+                  },
+                  then: "1",
+                  else: "0",
+                },
+              },
+            },
+          },
+          {
+            $unset: ["foodIdToDelete", "foodData", "foodPriceToDeduct"],
+          },
+        ];
+        const cartData = await Cart.aggregate(pipelineForItemManipulate);
+        console.log("cartData :", cartData);
+        if (cartData.length > 0) {
+          const updatedCart = await Cart.findOneAndUpdate(
+            { customerId: customer?._id },
+            {
+              $set: {
+                vendorCarts: cartData[0].vendorCarts,
+                is_deleted: cartData[0].is_deleted,
+              },
+            },
+            { new: true }
+          );
+          return res.status(200).json({
+            msg: "✅ Cart item deleted and total amount updated!",
+            updatedCart,
+          });
+        }
+        return res
+          .status(400)
+          .json({ msg: "Something went wrong while deleting the item" });
+      }
+    }
+  } catch (error) {
+    console.error("❌ DeleteCartItem Error:", error);
+    return res
+      .status(500)
+      .json({ message: "Something went wrong! Please try again later." });
+  }
 };

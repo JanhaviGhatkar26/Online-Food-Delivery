@@ -64,3 +64,5 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .docx
 package-lock.json
 src/images/
+try.ts
+Offer Db flow.jpg

@@ -43,7 +43,7 @@ router.delete("/deactivate", DeactiveMyAcc);
 router.post("/cart", CreateCart);
 router.get("/cart", GetCart);
 router.delete("/cart", DeleteCart);
-router.delete("/cart/:cartItemId", DeleteCartItem);
+router.delete("/cart/:vendorId/:cartItemId?", DeleteCartItem);
 // Order
 router.post("/create-order", CreateOrder);
 router.get("/orders", GetOrders);
