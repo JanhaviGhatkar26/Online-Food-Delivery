@@ -10,6 +10,10 @@ import {
   UpdateVendorProfile,
   UpdateVendorService,
   VendorLogin,
+  GetOffers,
+  CreateOffer,
+  DeleteOffers,
+  EditOffer,
 } from "../controllers";
 import { Authenticate } from "../middlewares";
 const router = express.Router();
@@ -47,6 +51,13 @@ router.get("/foods", GetFoods);
 router.get("/orders", GetCurrentOrders);
 router.put("/order/:id/process", ProcessOrder);
 router.get("/order/:id", GetOrderDetails);
+
+//Offers
+router.get("/offers", GetOffers);
+router.post("/offer", CreateOffer);
+router.put("/offer/:id", EditOffer);
+router.delete("/offer/:id", DeleteOffers);
+
 router.get("/", (req: Request, res: Response, next: NextFunction) => {
   res.json({ message: "Hello from  Vendor" });
 });
