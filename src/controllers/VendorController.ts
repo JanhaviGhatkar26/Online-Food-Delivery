@@ -195,7 +195,7 @@ export const AddFood = async (
         fs.mkdirSync(foodImagePath, { recursive: true });
       }
       const files = req.files as [Express.Multer.File];
-
+      console.log("files :", files);
       let images: [string] = [""];
       if (files.length > 0) {
         files.map((file: Express.Multer.File) => {
