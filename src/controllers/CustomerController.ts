@@ -479,6 +479,7 @@ export const CreateCart = async (
   }
 
   const { _id, unit } = <CartInputs>req.body;
+  console.log(_id, unit);
   if (!unit || unit < 1) {
     return res.status(400).json({ msg: "Unit must be at least 1" });
   }
@@ -486,7 +487,7 @@ export const CreateCart = async (
   if (!food) {
     return res.status(404).json({ msg: "Food item not found!" });
   }
-
+  console.log("food :0", food);
   const vendorId = food.vendorId; // Extract vendor ID from food item
   let message = "Product added successfully";
 
@@ -495,7 +496,7 @@ export const CreateCart = async (
     customerId: customer?._id,
     vendorId: vendorId,
   });
-
+  console.log("cart :", cart);
   // If no cart exists, create a new one
   if (!cart) {
     cart = new Cart({
@@ -513,13 +514,13 @@ export const CreateCart = async (
       // Add new item to this vendor's cart
       cart.items.push({ food: _id, unit: unit > 0 ? unit : 1 });
     }
-    await cart.save();
-
-    return res.status(200).json({
-      msg: message,
-      cart,
-    });
   }
+  await cart.save();
+
+  return res.status(200).json({
+    msg: message,
+    cart,
+  });
 };
 
 export const GetCart = async (
@@ -530,7 +531,9 @@ export const GetCart = async (
   const customer = req.user;
 
   if (customer) {
-    const carts = await Cart.find({ customerId: customer._id });
+    const carts = await Cart.find({ customerId: customer._id }).select(
+      "-createdAt -updatedAt -__v"
+    );
     // console.log("cart :", cart[0]?.vendorCarts);
     if (carts.length > 0) {
       const foodId = carts.flatMap((cart) =>
@@ -550,7 +553,6 @@ export const GetCart = async (
 
           return sum + price * item.unit; // ✅ Now correctly returns a number
         }, 0); // Initial sum value is 0 (ensures reduce starts correctly)
-
         return {
           ...cart.toObject(),
           totalAmount,
@@ -591,10 +593,7 @@ export const DeleteCartItem = async (
     const customer = req.user;
     const { vendorId, cartItemId } = req.params;
     console.log(
-      "🛒 Deleting from Cart - Vendor:",
-      vendorId,
-      "Item:",
-      cartItemId || "All"
+      `🛒 Deleting from Cart - Vendor: ${vendorId}, Item: ${cartItemId} || All`
     );
     const cart = await Cart.findOne({
       customerId: customer?._id,
@@ -605,9 +604,8 @@ export const DeleteCartItem = async (
     }
     const initialItemCount = cart.items.length;
     cart.items = cart.items.filter((item) => {
-      item._id.toString() !== cartItemId;
+      return item._id.toString() !== cartItemId;
     });
-
     if (initialItemCount === cart.items.length) {
       return res
         .status(400)
