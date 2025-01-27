@@ -30,7 +30,6 @@ export const CustomerSignUp = async (
   const inputError = await validate(customerInputs, {
     validationError: { target: true },
   });
-  console.log("inputError :", inputError);
   if (inputError.length > 0) {
     return res.status(400).json(inputError);
   }
@@ -38,7 +37,6 @@ export const CustomerSignUp = async (
   const salt = await GenerateSalt();
   const userPassword = await GeneratePassword(password, salt);
   const { otp, expiry } = GenerateOTP();
-  console.log("otp, expiry:", otp, expiry);
   const customerData = {
     firstName: "",
     lastName: "",
@@ -176,13 +174,11 @@ export const CustomerLogin = async (
     isActive: "1",
   });
   if (customer) {
-    console.log("customer :", customer);
     const validation = await ValidatePassword(
       password,
       customer?.password,
       customer?.salt
     );
-    console.log("validation :", validation);
     if (validation) {
       // Generate the signature
       const signature = await GenerateSignature({
@@ -248,7 +244,6 @@ export const EditCustomerProfile = async (
 
       // Special handling for password (if needed)
       if (password) {
-        console.log("password :", password);
         const salt = await GenerateSalt();
 
         const hashedPassword = await GeneratePassword(password, salt);
@@ -307,7 +302,6 @@ export const CreateOrder = async (
     const profile = await Customer.findById(customer._id);
     // Grab order items fromrequest ({id:xx , unit:xx});
     const cart = <[OrderInputs]>req.body;
-    console.log("cart :", cart);
     let cartItems = Array();
     let netAmount = 0.0;
     let vendorId;
@@ -316,7 +310,6 @@ export const CreateOrder = async (
       .where("_id")
       .in(cart.map((item) => item._id))
       .exec();
-    console.log("foods :", foods);
     foods.map((food) => {
       cart.map(({ _id, unit }) => {
         if (food._id == _id) {
@@ -330,7 +323,6 @@ export const CreateOrder = async (
       return res.status(400).json({ msg: "No valid items in the cart" });
     }
     // Create order with item description and note of customer\
-    console.log("vendorId :", vendorId);
     if (cartItems) {
       let orderObj = {
         orderID: orderID,
@@ -347,13 +339,10 @@ export const CreateOrder = async (
         offerId: null,
         readyTime: 45,
       };
-      console.log("cartItems :", cartItems);
-      console.log("profile.cart :", profile.cart);
 
       // return res.status(200).json(orderObj);
       const currentOrder = await Order.create(orderObj);
       if (currentOrder) {
-        console.log("currentOrder :", currentOrder);
         profile.cart = [] as any;
         profile?.orders.push(currentOrder);
         const UpdatedProfile = await profile.save();
@@ -479,7 +468,6 @@ export const CreateCart = async (
   }
 
   const { _id, unit } = <CartInputs>req.body;
-  console.log(_id, unit);
   if (!unit || unit < 1) {
     return res.status(400).json({ msg: "Unit must be at least 1" });
   }
@@ -487,7 +475,6 @@ export const CreateCart = async (
   if (!food) {
     return res.status(404).json({ msg: "Food item not found!" });
   }
-  console.log("food :0", food);
   const vendorId = food.vendorId; // Extract vendor ID from food item
   let message = "Product added successfully";
 
@@ -496,7 +483,6 @@ export const CreateCart = async (
     customerId: customer?._id,
     vendorId: vendorId,
   });
-  console.log("cart :", cart);
   // If no cart exists, create a new one
   if (!cart) {
     cart = new Cart({
@@ -534,7 +520,6 @@ export const GetCart = async (
     const carts = await Cart.find({ customerId: customer._id }).select(
       "-createdAt -updatedAt -__v"
     );
-    // console.log("cart :", cart[0]?.vendorCarts);
     if (carts.length > 0) {
       const foodId = carts.flatMap((cart) =>
         cart.items.map((item) => item.food)
@@ -636,12 +621,6 @@ export const DeleteCartItem = async (
 //   try {
 //     const customer = req.user;
 //     const { vendorId, cartItemId } = req.params;
-//     console.log(
-//       "🛒 Deleting from Cart - Vendor:",
-//       vendorId,
-//       "Item:",
-//       cartItemId || "All"
-//     );
 //     const CustomerCart = await Cart.findOne({
 //       customerId: customer?._id,
 //       is_deleted: "0",
@@ -667,7 +646,6 @@ export const DeleteCartItem = async (
 //       const itemExists = vendorCart.items.filter((item) => {
 //         return item._id.toString() === cartItemId;
 //       });
-//       console.log("itemExists :", itemExists);
 //       if (itemExists.length <= 0) {
 //         return res
 //           .status(400)
@@ -878,7 +856,6 @@ export const DeleteCartItem = async (
 //           },
 //         ];
 //         const cartData = await Cart.aggregate(pipelineForItemManipulate);
-//         console.log("cartData :", cartData);
 //         if (cartData.length > 0) {
 //           const updatedCart = await Cart.findOneAndUpdate(
 //             { customerId: customer?._id },
