@@ -4,10 +4,12 @@ import {
   DeleteCustomerAccount,
   GetVendor,
   GetVendorById,
+  RefreshToken,
 } from "../controllers";
 import { images } from ".";
 const router = express.Router();
 
+router.get("/RefreshToken", RefreshToken);
 router.post("/vendor", images, CreateVendor);
 router.get("/vendor", GetVendor);
 router.get("/vendor/:id", GetVendorById);

@@ -1,9 +1,16 @@
 import { NextFunction, Request, Response } from "express";
 import { CreateVendorInput } from "../dto";
 import { Customer, Vendor } from "../models";
-import { GeneratePassword, GenerateSalt } from "../utility";
+import {
+  GenerateAccessSignature,
+  GeneratePassword,
+  GenerateSalt,
+  RefreshAcessToken,
+} from "../utility";
 import path from "path";
 import fs from "fs";
+import { REFRESH_TOKEN_SECRET } from "../config";
+import jwt from "jsonwebtoken";
 
 export const FindVendor = async (
   id: string | undefined,
@@ -133,4 +140,24 @@ export const DeleteCustomerAccount = async (
   return res
     .status(404)
     .json({ message: "Something went wrong while Deleting account." });
+};
+
+export const RefreshToken = async (req: Request, res: Response) => {
+  try {
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const newAccessToken = await RefreshAcessToken(req);
+    console.log("newAccessToken :", newAccessToken);
+    res.cookie(`accessTokenOfUser`, newAccessToken, {
+      httpOnly: true,
+      secure: true, // Use true in production
+      sameSite: "strict",
+      maxAge: 30 * 60 * 1000, // 30min
+    });
+    return res.json({ token: newAccessToken });
+  } catch (err) {
+    return res.status(403).json({ message: err });
+  }
 };

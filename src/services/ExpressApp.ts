@@ -7,8 +7,10 @@ import {
 } from "../routes";
 import path from "path";
 import fs from "fs";
+import cookieParser from "cookie-parser";
 
 export default async (app: Application) => {
+  app.use(cookieParser());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 

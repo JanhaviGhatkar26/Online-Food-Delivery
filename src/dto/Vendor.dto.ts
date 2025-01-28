@@ -22,7 +22,7 @@ export interface VendorPayload {
   _id: string;
   email: string;
   name: string;
-  foodType: [string];
+  foodType?: [string];
 }
 
 export interface EditVendorInputs {

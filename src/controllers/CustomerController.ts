@@ -12,7 +12,7 @@ import {
   GenerateOTP,
   GeneratePassword,
   GenerateSalt,
-  GenerateSignature,
+  GenerateAccessSignature,
   onRequestOtp,
   ValidatePassword,
 } from "../utility";
@@ -74,7 +74,7 @@ export const CustomerSignUp = async (
     }
 
     // Generate the signature
-    const signature = await GenerateSignature({
+    const signature = await GenerateAccessSignature({
       _id: String(newCustomer._id),
       email: newCustomer.email,
       verified: newCustomer.verified,
@@ -138,7 +138,7 @@ export const CustomerVerify = async (
 
         const updatedCustomerResponse = await profile.save();
 
-        const signature = await GenerateSignature({
+        const signature = await GenerateAccessSignature({
           _id: String(updatedCustomerResponse._id),
           email: updatedCustomerResponse.email,
           verified: updatedCustomerResponse.verified,
@@ -181,7 +181,7 @@ export const CustomerLogin = async (
     );
     if (validation) {
       // Generate the signature
-      const signature = await GenerateSignature({
+      const signature = await GenerateAccessSignature({
         _id: String(customer._id),
         email: customer.email,
         verified: customer.verified,

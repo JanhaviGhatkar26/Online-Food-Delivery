@@ -6,7 +6,11 @@ import {
   VendorLoginInputs,
 } from "../dto";
 import { FindVendor } from "./AdminController";
-import { GenerateSignature, ValidatePassword } from "../utility";
+import {
+  GenerateAccessSignature,
+  GenerateRefreshSignature,
+  ValidatePassword,
+} from "../utility";
 import { Food, Offer, Order } from "../models";
 import path from "path";
 import fs from "fs";
@@ -35,19 +39,31 @@ export const VendorLogin = async (
       exsitingVendor?.salt
     );
     if (validation) {
-      const signature = await GenerateSignature({
+      const accessToken = await GenerateAccessSignature({
         _id: String(exsitingVendor?._id),
         name: exsitingVendor?.name,
         email: exsitingVendor?.email,
         foodType: exsitingVendor?.foodType,
       });
+      const refreshToken = await GenerateRefreshSignature({
+        _id: String(exsitingVendor?._id),
+        name: exsitingVendor?.name,
+        email: exsitingVendor?.email,
+      });
+      res.cookie(`refreshTokenOfUser`, refreshToken, {
+        httpOnly: true,
+        secure: true, // Use true in production
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
       return res.json({
         message: "Logged in sucsefully",
         _id: String(exsitingVendor?._id),
         name: exsitingVendor?.name,
         email: exsitingVendor?.email,
         foodType: exsitingVendor?.foodType,
-        token: signature,
+        token: accessToken,
       });
     } else {
       return res.json({ message: "Password is not valid" });
