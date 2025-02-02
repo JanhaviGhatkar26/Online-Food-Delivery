@@ -1,40 +1,32 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface FoodDoc extends Document {
-  vendorId: string;
+  vendorId: mongoose.Schema.Types.ObjectId;
   name: string;
   description: string;
-  category: string;
+  category: string[];
   foodType: string;
   readyTime: number;
   price: number;
   rating: number;
-  images: [string];
-  isActive: string;
-  is_deleted: string;
+  images: string[];
+  isActive: boolean;
+  isDeleted: boolean;
 }
 
 const FoodSchema = new Schema(
   {
-    vendorId: { type: String, required: true },
+    vendorId: { type: Schema.Types.ObjectId, ref: "vendor", required: true },
     name: { type: String, required: true },
     description: { type: String, required: true },
-    category: { type: String },
+    category: { type: [String], default: [] }, // Supports multiple categories
     foodType: { type: String, required: true },
     readyTime: { type: Number },
-    price: { type: Number },
-    rating: { type: Number },
+    price: { type: Number, required: true },
+    rating: { type: Number, default: 0 },
     images: { type: [String] },
-    isActive: {
-      type: String,
-      enum: ["1", "0"], // Restrict values to '1' active or '0' deactive
-      default: "1", // Set the default value to '1'
-    },
-    is_deleted: {
-      type: String,
-      enum: ["1", "0"], // Restrict values to '1' deleted or '0' No deleted
-      default: "0", // Set the default value to '1'
-    },
+    isActive: { type: Boolean, default: true },
+    isDeleted: { type: Boolean, default: false },
   },
   {
     toJSON: {

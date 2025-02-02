@@ -297,15 +297,12 @@ export const CreateOrder = async (
   // grab the lgin in customer;
   const customer = req.user;
   if (customer) {
-    // create an order ID;
     const orderID = `${Math.floor(Math.random() * 899999) + 1000}`;
     const profile = await Customer.findById(customer._id);
-    // Grab order items fromrequest ({id:xx , unit:xx});
     const cart = <[OrderInputs]>req.body;
     let cartItems = Array();
     let netAmount = 0.0;
     let vendorId;
-    // Calculate order amount
     const foods = await Food.find()
       .where("_id")
       .in(cart.map((item) => item._id))

@@ -1,6 +1,12 @@
 import { Type } from "class-transformer";
 import { IsArray, IsDate, IsNumber, IsString, Min } from "class-validator";
 
+export interface findVendor {
+  _id: string;
+  phone: string;
+  email: string;
+  acticveCheck: boolean;
+}
 export interface CreateVendorInput {
   name: string;
   ownerName: string;

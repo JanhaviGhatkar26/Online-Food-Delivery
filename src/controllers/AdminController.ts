@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { CreateVendorInput } from "../dto";
+import { CreateVendorInput, findVendor } from "../dto";
 import { Customer, Vendor } from "../models";
 import {
   GenerateAccessSignature,
@@ -9,21 +9,32 @@ import {
 } from "../utility";
 import path from "path";
 import fs from "fs";
-import { REFRESH_TOKEN_SECRET } from "../config";
-import jwt from "jsonwebtoken";
 
-export const FindVendor = async (
-  id: string | undefined,
-  email?: string,
-  phone?: string
-) => {
+export const FindVendor = async ({
+  _id,
+  email = "",
+  phone = "",
+  activeCheck = false, // Default is false
+}: {
+  _id?: string;
+  email?: string;
+  phone?: string;
+  activeCheck?: boolean;
+}) => {
+  const filter: any = { isDeleted: false }; // ✅ Always enforce `isDeleted: false`
+
   if (email || phone) {
-    return await Vendor.findOne({
-      $or: [{ email }, { phone }],
-    });
-  } else {
-    return await Vendor.findById(id);
+    filter["$or"] = [{ email }, { phone }];
+  } else if (_id) {
+    filter["_id"] = _id;
   }
+
+  // ✅ If `acticveCheck` is true, also check `isActive: true`
+  if (activeCheck) {
+    filter["isActive"] = true;
+  }
+
+  return await Vendor.findOne(filter);
 };
 
 export const CreateVendor = async (
@@ -43,7 +54,11 @@ export const CreateVendor = async (
     phone,
   } = <CreateVendorInput>req.body;
 
-  const existVendor = await FindVendor(email, phone);
+  const existVendor = await FindVendor({
+    email: email,
+    phone: phone,
+    activeCheck: true,
+  });
   if (existVendor !== null) {
     return res.json({
       message: "A Vendor is already exist with this email ID or phone number",
@@ -112,7 +127,7 @@ export const GetVendorById = async (
   next: NextFunction
 ) => {
   const vendorId = req.params.id;
-  const vendorById = await FindVendor(vendorId);
+  const vendorById = await FindVendor({ _id: vendorId, activeCheck: true });
   if (vendorById !== null) {
     return res.json(vendorById);
   }

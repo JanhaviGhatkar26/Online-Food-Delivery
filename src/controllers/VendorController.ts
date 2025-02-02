@@ -16,6 +16,7 @@ import path from "path";
 import fs from "fs";
 import { plainToClass } from "class-transformer";
 import { validate } from "class-validator";
+import mongoose from "mongoose";
 
 //Login the vendor by email and password
 export const VendorLogin = async (
@@ -25,14 +26,9 @@ export const VendorLogin = async (
 ) => {
   const { email, password } = <VendorLoginInputs>req.body;
   console.log(email, password);
-  const exsitingVendor = await FindVendor("", email);
+  const exsitingVendor = await FindVendor({ email: email, activeCheck: true });
   console.log("exsitingVendor:", exsitingVendor);
   if (exsitingVendor !== null) {
-    if (exsitingVendor.is_deleted !== "0" || exsitingVendor.isActive !== "1") {
-      return res
-        .status(404)
-        .json({ message: "Vendor is deleted or inactive." });
-    }
     const validation = await ValidatePassword(
       password,
       exsitingVendor?.password,
@@ -80,7 +76,10 @@ export const GetVendorProfile = async (
 ) => {
   const user = req.user;
   if (user) {
-    const exsitingVendor = await FindVendor(user._id);
+    const exsitingVendor = await FindVendor({
+      _id: user._id,
+      activeCheck: true,
+    });
     return res.json(exsitingVendor);
   }
   return res.json({ message: "Vendor information Not Found" });
@@ -95,7 +94,10 @@ export const UpdateVendorProfile = async (
   const { address, phone, foodType, name } = <EditVendorInputs>req.body;
   const user = req.user;
   if (user) {
-    const exsitingVendor = await FindVendor(user._id);
+    const exsitingVendor = await FindVendor({
+      _id: user._id,
+      activeCheck: true,
+    });
     if (exsitingVendor !== null) {
       exsitingVendor.name = name;
       exsitingVendor.address = address;
@@ -117,7 +119,7 @@ export const UpdateVendorCoverImage = async (
   const user = req.user;
 
   if (user) {
-    const vendor = await FindVendor(user._id);
+    const vendor = await FindVendor({ _id: user._id, activeCheck: true });
 
     if (vendor !== null) {
       console.log({ vendor });
@@ -160,7 +162,10 @@ export const UpdateVendorService = async (
 ) => {
   const user = req.user;
   if (user) {
-    const existingVendor = await FindVendor(user._id);
+    const existingVendor = await FindVendor({
+      _id: user._id,
+      activeCheck: true,
+    });
     if (existingVendor !== null) {
       existingVendor.serviceAvailable = !existingVendor.serviceAvailable;
       const saveResult = await existingVendor.save();
@@ -183,11 +188,11 @@ export const AddFood = async (
   >req.body;
 
   if (user) {
-    const vendor = await FindVendor(user._id);
+    const vendor = await FindVendor({ _id: user._id, activeCheck: true });
 
     if (vendor !== null) {
       const food = await Food.create({
-        vendorId: vendor._id,
+        vendorId: new mongoose.Types.ObjectId(vendor._id.toString()),
         name: name,
         description: description,
         category: category,
@@ -198,7 +203,7 @@ export const AddFood = async (
         images: [], // Initialize an empty array for images
       });
 
-      vendor.foods.push(food);
+      vendor.foods.push(food._id as mongoose.Schema.Types.ObjectId);
       const result = await vendor.save();
       const foodImagePath = path.join(
         __dirname,
@@ -397,7 +402,7 @@ export const CreateOffer = async (
       promocode,
       startValidity,
     } = <CreateOfferInputs>req.body;
-    const vendor = await FindVendor(user?._id);
+    const vendor = await FindVendor({ _id: user._id, activeCheck: true });
     if (vendor) {
       const curDate = new Date();
 
