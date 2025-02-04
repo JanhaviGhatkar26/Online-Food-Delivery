@@ -276,7 +276,7 @@ export const RefreshToken = async (req: Request, res: Response) => {
     }
     const newAccessToken = await RefreshAcessToken(req);
     console.log("newAccessToken :", newAccessToken);
-    res.cookie(`accessTokenOfUser`, newAccessToken, {
+    res.cookie(`x-auth-token`, newAccessToken, {
       httpOnly: true,
       secure: true, // Use true in production
       sameSite: "strict",

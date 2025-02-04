@@ -85,6 +85,32 @@ export class CreateVendorDTO {
   closingHours?: string;
 }
 
+export class UpdateVendorDTO {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsPhoneNumber("IN") // Adjust country code as needed
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @IsOptional()
+  @IsString({ each: true })
+  foodType?: string[];
+
+  @IsOptional()
+  @IsString({ each: true })
+  coverImage?: string[];
+}
+
 export interface findVendor {
   _id: string;
   phone: string;
@@ -118,10 +144,11 @@ export interface VendorPayload {
 }
 
 export interface EditVendorInputs {
-  name: string;
-  phone: string;
-  address: string;
-  foodType: [string];
+  name?: string;
+  phone?: string;
+  address?: string;
+  foodType?: string[];
+  coverImage?: string[];
 }
 
 export class CreateOfferInputs {

@@ -3,6 +3,7 @@ import {
   CreateFoodInput,
   CreateOfferInputs,
   EditVendorInputs,
+  UpdateVendorDTO,
   VendorLoginInputs,
 } from "../dto";
 import { FindVendor } from "./AdminController";
@@ -11,7 +12,7 @@ import {
   GenerateRefreshSignature,
   ValidatePassword,
 } from "../utility";
-import { Food, Offer, Order } from "../models";
+import { Food, Offer, Order, Vendor } from "../models";
 import path from "path";
 import fs from "fs";
 import { plainToClass } from "class-transformer";
@@ -26,46 +27,64 @@ export const VendorLogin = async (
 ) => {
   const { email, password } = <VendorLoginInputs>req.body;
   console.log(email, password);
-  const exsitingVendor = await FindVendor({ email: email, activeCheck: true });
-  console.log("exsitingVendor:", exsitingVendor);
-  if (exsitingVendor !== null) {
-    const validation = await ValidatePassword(
-      password,
-      exsitingVendor?.password,
-      exsitingVendor?.salt
-    );
-    if (validation) {
-      const accessToken = await GenerateAccessSignature({
-        _id: String(exsitingVendor?._id),
-        name: exsitingVendor?.name,
-        email: exsitingVendor?.email,
-        foodType: exsitingVendor?.foodType,
-      });
-      const refreshToken = await GenerateRefreshSignature({
-        _id: String(exsitingVendor?._id),
-        name: exsitingVendor?.name,
-        email: exsitingVendor?.email,
-      });
-      res.cookie(`refreshTokenOfUser`, refreshToken, {
-        httpOnly: true,
-        secure: true, // Use true in production
-        sameSite: "strict",
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
-
-      return res.json({
-        message: "Logged in sucsefully",
-        _id: String(exsitingVendor?._id),
-        name: exsitingVendor?.name,
-        email: exsitingVendor?.email,
-        foodType: exsitingVendor?.foodType,
-        token: accessToken,
-      });
-    } else {
-      return res.json({ message: "Password is not valid" });
-    }
+  if (!email || !password) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Email and password are required." });
   }
-  return res.json({ message: "Login credentials not valid" });
+  const exsitingVendor = await FindVendor({ email: email, activeCheck: true });
+  // ✅ Find vendor with activeCheck
+  if (!exsitingVendor) {
+    return res
+      .status(401)
+      .json({ success: false, message: "Invalid login credentials." });
+  }
+  // ✅ Validate password using bcrypt
+  const isPasswordValid = await ValidatePassword(
+    password,
+    exsitingVendor.password,
+    exsitingVendor.salt
+  );
+  if (isPasswordValid) {
+    const accessToken = await GenerateAccessSignature({
+      _id: String(exsitingVendor?._id),
+      name: exsitingVendor?.name,
+      email: exsitingVendor?.email,
+      foodType: exsitingVendor?.foodType,
+    });
+    const refreshToken = await GenerateRefreshSignature({
+      _id: String(exsitingVendor?._id),
+      name: exsitingVendor?.name,
+      email: exsitingVendor?.email,
+    });
+    res.cookie(`x-ref-token`, refreshToken, {
+      httpOnly: true,
+      secure: true, // Use true in production
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+    res.cookie(`x-auth-token`, accessToken, {
+      httpOnly: true,
+      secure: true, // Use true in production
+      sameSite: "strict",
+      maxAge: 21600, // 6hr
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Logged in successfully.",
+      data: {
+        _id: String(exsitingVendor._id),
+        name: exsitingVendor.name,
+        email: exsitingVendor.email,
+        foodType: exsitingVendor.foodType,
+        token: accessToken,
+      },
+    });
+  }
+  return res
+    .status(401)
+    .json({ success: false, message: "Login credentials not valid." });
 };
 
 //Get the vendor profile detail
@@ -76,83 +95,176 @@ export const GetVendorProfile = async (
 ) => {
   const user = req.user;
   if (user) {
-    const exsitingVendor = await FindVendor({
+    const existingVendor = await FindVendor({
       _id: user._id,
       activeCheck: true,
     });
-    return res.json(exsitingVendor);
+    if (!existingVendor) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Vendor profile not found." });
+    }
+    return res.status(200).json({ success: true, data: existingVendor });
   }
   return res.json({ message: "Vendor information Not Found" });
 };
 
 //Update the vendor profile details
+
 export const UpdateVendorProfile = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const { address, phone, foodType, name } = <EditVendorInputs>req.body;
   const user = req.user;
   if (user) {
-    const exsitingVendor = await FindVendor({
-      _id: user._id,
-      activeCheck: true,
-    });
-    if (exsitingVendor !== null) {
-      exsitingVendor.name = name;
-      exsitingVendor.address = address;
-      exsitingVendor.phone = phone;
-      exsitingVendor.foodType = foodType;
-      const savedVendor = await exsitingVendor.save();
-      return res.json(savedVendor);
+    const dto = Object.assign(new UpdateVendorDTO(), req.body);
+    const errors = await validate(dto);
+    if (errors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors: errors.map((e) => e.constraints),
+      });
     }
-    return res.json(exsitingVendor);
-  }
-  return res.json({ message: "Vendor information Not Found" });
-};
+    const existingVendor = await FindVendor({
+      _id: user._id,
+    });
+    if (!existingVendor) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Vendor profile not found." });
+    }
+    for (const [key, value] of Object.entries(dto)) {
+      if (value !== undefined) {
+        if (key === "email") {
+          existingVendor[key] = req.user.email;
+        } else {
+          existingVendor[key] = value;
+        }
+      }
+    }
 
-export const UpdateVendorCoverImage = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const user = req.user;
-
-  if (user) {
-    const vendor = await FindVendor({ _id: user._id, activeCheck: true });
-
-    if (vendor !== null) {
-      console.log({ vendor });
+    if (req.files && (req.files as Express.Multer.File[]).length > 0) {
       const vendorCoverImgPath = path.join(
         __dirname,
         "..",
         "images",
         "Vendor",
-        String(vendor._id)
+        String(existingVendor._id)
       );
-
-      if (!fs.existsSync(vendorCoverImgPath)) {
-        fs.mkdirSync(vendorCoverImgPath, { recursive: true });
+      if (existingVendor.coverImage.length > 0) {
+        existingVendor.coverImage.forEach((file) => {
+          const oldFilePath = path.join(vendorCoverImgPath, file);
+          if (fs.existsSync(oldFilePath)) {
+            fs.unlinkSync(oldFilePath);
+          }
+        });
       }
 
-      const files = req.files as Express.Multer.File[]; // Adjusted for types
-
+      const files = req.files as Express.Multer.File[];
       let images: string[] = [];
-      files.forEach((file: Express.Multer.File) => {
+
+      files.forEach((file) => {
+        if (!file.mimetype.startsWith("image/")) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid file type. Only images are allowed.",
+          });
+        }
+
+        if (!fs.existsSync(vendorCoverImgPath)) {
+          fs.mkdirSync(vendorCoverImgPath, { recursive: true });
+        }
+
         const filePath = path.join(vendorCoverImgPath, file.filename);
-        fs.renameSync(file.path, filePath); // Move the uploaded file to the new folder
+        fs.renameSync(file.path, filePath);
         images.push(file.filename);
       });
 
-      console.log(images);
-      vendor.coverImage.push(...images); // Update the coverImage field
-
-      const saveResult = await vendor.save();
-
-      return res.json(saveResult);
+      existingVendor.coverImage = images;
     }
+
+    const updatedVendor = await existingVendor.save();
+    return res.status(200).json({
+      success: true,
+      message: "Vendor profile updated successfully.",
+      data: updatedVendor,
+    });
   }
+  return res.status(500).json({
+    success: false,
+    message: "Vendor information Not Found",
+    data: {},
+  });
 };
+// export const UpdateVendorProfile = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   const { address, phone, foodType, name } = <EditVendorInputs>req.body;
+//   const user = req.user;
+//   if (user) {
+//     const exsitingVendor = await FindVendor({
+//       _id: user._id,
+//       activeCheck: true,
+//     });
+//     if (exsitingVendor !== null) {
+//       exsitingVendor.name = name;
+//       exsitingVendor.address = address;
+//       exsitingVendor.phone = phone;
+//       exsitingVendor.foodType = foodType;
+//       const savedVendor = await exsitingVendor.save();
+//       return res.json(savedVendor);
+//     }
+//     return res.json(exsitingVendor);
+//   }
+//   return res.json({ message: "Vendor information Not Found" });
+// };
+
+// export const UpdateVendorCoverImage = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   const user = req.user;
+
+//   if (user) {
+//     const vendor = await FindVendor({ _id: user._id, activeCheck: true });
+
+//     if (vendor !== null) {
+//       console.log({ vendor });
+//       const vendorCoverImgPath = path.join(
+//         __dirname,
+//         "..",
+//         "images",
+//         "Vendor",
+//         String(vendor._id)
+//       );
+
+//       if (!fs.existsSync(vendorCoverImgPath)) {
+//         fs.mkdirSync(vendorCoverImgPath, { recursive: true });
+//       }
+
+//       const files = req.files as Express.Multer.File[]; // Adjusted for types
+
+//       let images: string[] = [];
+//       files.forEach((file: Express.Multer.File) => {
+//         const filePath = path.join(vendorCoverImgPath, file.filename);
+//         fs.renameSync(file.path, filePath); // Move the uploaded file to the new folder
+//         images.push(file.filename);
+//       });
+
+//       console.log(images);
+//       vendor.coverImage.push(...images); // Update the coverImage field
+
+//       const saveResult = await vendor.save();
+
+//       return res.json(saveResult);
+//     }
+//   }
+// };
 
 //Update the vendor service status
 export const UpdateVendorService = async (
@@ -162,13 +274,13 @@ export const UpdateVendorService = async (
 ) => {
   const user = req.user;
   if (user) {
-    const existingVendor = await FindVendor({
+    const exsitingVendor = await FindVendor({
       _id: user._id,
       activeCheck: true,
     });
-    if (existingVendor !== null) {
-      existingVendor.serviceAvailable = !existingVendor.serviceAvailable;
-      const saveResult = await existingVendor.save();
+    if (exsitingVendor !== null) {
+      exsitingVendor.serviceAvailable = !exsitingVendor.serviceAvailable;
+      const saveResult = await exsitingVendor.save();
       return res.json(saveResult);
     }
   }
