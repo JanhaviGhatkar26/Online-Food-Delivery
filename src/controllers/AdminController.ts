@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { CreateVendorInput, findVendor } from "../dto";
+import { CreateVendorDTO, CreateVendorInput, findVendor } from "../dto";
 import { Customer, Vendor } from "../models";
 import {
   GenerateAccessSignature,
@@ -9,6 +9,8 @@ import {
 } from "../utility";
 import path from "path";
 import fs from "fs";
+import { validate } from "class-validator";
+import mongoose from "mongoose";
 
 export const FindVendor = async ({
   _id,
@@ -34,7 +36,8 @@ export const FindVendor = async ({
     filter["isActive"] = true;
   }
 
-  return await Vendor.findOne(filter);
+  const vendor = await Vendor.findOne(filter).lean();
+  return vendor;
 };
 
 export const CreateVendor = async (
@@ -42,46 +45,59 @@ export const CreateVendor = async (
   res: Response,
   next: NextFunction
 ) => {
+  // ✅ Validate input using DTO
+  const dto = Object.assign(new CreateVendorDTO(), req.body);
+  const errors = await validate(dto);
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Validation failed",
+      errors: errors.map((e) => e.constraints),
+    });
+  }
   const {
     name,
     address,
     email,
     foodType,
-    coverImage,
     ownerName,
     password,
     pincode,
     phone,
-  } = <CreateVendorInput>req.body;
-
+    closingHours,
+    openingHours,
+  } = dto;
   const existVendor = await FindVendor({
     email: email,
     phone: phone,
     activeCheck: true,
   });
-  if (existVendor !== null) {
-    return res.json({
-      message: "A Vendor is already exist with this email ID or phone number",
+  if (existVendor) {
+    return res.status(400).json({
+      success: false,
+      message: "Vendor already exists with this email or phone.",
     });
   }
   const salt = await GenerateSalt();
   const userPassword = await GeneratePassword(password, salt);
   // crypt password
-  const vendorobj = {
-    name: name,
-    address: address,
-    pincode: pincode,
-    foodType: foodType,
-    email: email,
+  const vendorobj = new Vendor({
+    name,
+    address,
+    pincode,
+    foodType,
+    email,
     password: userPassword,
-    salt: salt,
-    ownerName: ownerName,
-    phone: phone,
+    salt,
+    ownerName,
+    phone,
     rating: 0,
     serviceAvailable: false,
     coverImage: [],
     foods: [],
-  };
+    openingHours: openingHours || "09:00 AM",
+    closingHours: closingHours || "11:00 PM",
+  });
   const createdVendor = await Vendor.create(vendorobj);
   const vendorCoverImgPath = path.join(
     __dirname,
@@ -95,30 +111,117 @@ export const CreateVendor = async (
     fs.mkdirSync(vendorCoverImgPath, { recursive: true });
   }
 
-  const files = req.files as Express.Multer.File[]; // Adjusted for types
-
   let images: string[] = [];
-  files.forEach((file: Express.Multer.File) => {
-    const filePath = path.join(vendorCoverImgPath, file.filename);
-    fs.renameSync(file.path, filePath); // Move the uploaded file to the new folder
-    images.push(file.filename);
-  });
-
+  if (req.files) {
+    const files = req.files as Express.Multer.File[]; // Adjusted for types
+    for (const file of files) {
+      if (!file.mimetype.startsWith("image/")) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid file type. Only images are allowed.",
+        });
+      }
+      const filePath = path.join(vendorCoverImgPath, file.filename);
+      fs.renameSync(file.path, filePath); // Move the uploaded file to the new folder
+      images.push(file.filename);
+    }
+  }
   createdVendor.coverImage.push(...images);
-  const saveResult = await createdVendor.save();
-  return res.json(saveResult);
+  await createdVendor.save();
+  return res.status(201).json({
+    success: true,
+    message: "Vendor created successfully.",
+    data: createdVendor,
+  });
 };
+// export const CreateVendor = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   const {
+//     name,
+//     address,
+//     email,
+//     foodType,
+//     ownerName,
+//     password,
+//     pincode,
+//     phone,
+//     closingHours,
+//     openingHours,
+//     coverImage,
+//   } = <CreateVendorInput>req.body;
+
+//   const existVendor = await FindVendor({
+//     email: email,
+//     phone: phone,
+//     activeCheck: true,
+//   });
+//   if (existVendor !== null) {
+//     return res.json({
+//       message: "A Vendor is already exist with this email ID or phone number",
+//     });
+//   }
+//   const salt = await GenerateSalt();
+//   const userPassword = await GeneratePassword(password, salt);
+//   // crypt password
+//   const vendorobj = {
+//     name: name,
+//     address: address,
+//     pincode: pincode,
+//     foodType: foodType,
+//     email: email,
+//     password: userPassword,
+//     salt: salt,
+//     ownerName: ownerName,
+//     phone: phone,
+//     rating: 0,
+//     serviceAvailable: false,
+//     coverImage: [],
+//     foods: [],
+//     openingHours: openingHours || "09:00 AM",
+//     closingHours: closingHours || "11:00 PM",
+//   };
+//   const createdVendor = await Vendor.create(vendorobj);
+//   const vendorCoverImgPath = path.join(
+//     __dirname,
+//     "..",
+//     "images",
+//     "Vendor",
+//     String(createdVendor._id)
+//   );
+
+//   if (!fs.existsSync(vendorCoverImgPath)) {
+//     fs.mkdirSync(vendorCoverImgPath, { recursive: true });
+//   }
+
+//   const files = req.files as Express.Multer.File[]; // Adjusted for types
+
+//   let images: string[] = [];
+//   files.forEach((file: Express.Multer.File) => {
+//     const filePath = path.join(vendorCoverImgPath, file.filename);
+//     fs.renameSync(file.path, filePath); // Move the uploaded file to the new folder
+//     images.push(file.filename);
+//   });
+
+//   createdVendor.coverImage.push(...images);
+//   const saveResult = await createdVendor.save();
+//   return res.json(saveResult);
+// };
 
 export const GetVendor = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const vendors = await Vendor.find({ is_deleted: "0" });
-  if (vendors !== null) {
-    return res.json(vendors);
+  const vendors = await Vendor.find({ isDeleted: false });
+  if (!vendors || vendors.length === 0) {
+    return res
+      .status(404)
+      .json({ success: false, message: "No vendors found." });
   }
-  return res.json({ message: "Vendors data not availale" });
+  return res.status(200).json({ success: true, data: vendors });
 };
 
 export const GetVendorById = async (
@@ -127,22 +230,30 @@ export const GetVendorById = async (
   next: NextFunction
 ) => {
   const vendorId = req.params.id;
-  const vendorById = await FindVendor({ _id: vendorId, activeCheck: true });
-  if (vendorById !== null) {
-    return res.json(vendorById);
+  if (!mongoose.Types.ObjectId.isValid(vendorId)) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid vendor ID format." });
   }
-  return res.json({ message: "Vendor data not availale" });
+  const vendorById = await FindVendor({ _id: vendorId, activeCheck: true });
+  if (!vendorById) {
+    return res
+      .status(404)
+      .json({ success: false, message: "Vendor not found." });
+  }
+  return res.status(200).json({ success: true, data: vendorById });
 };
+
 export const DeleteCustomerAccount = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const customerID = req.params;
-  console.log(customerID);
+  const customerID = req.params.customerID;
+
   // const customer = req.user;
-  if (customerID?.customerID) {
-    const profile = await Customer.findById(customerID?.customerID);
+  if (customerID) {
+    const profile = await Customer.findById(customerID);
     if (!profile) {
       return res.status(404).json({ message: "Customer profile not found." });
     }

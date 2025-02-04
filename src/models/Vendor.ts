@@ -31,7 +31,7 @@ const VendorSchema = new Schema(
     email: { type: String, required: true },
     password: { type: String, required: true },
     salt: { type: String, required: true },
-    serviceAvailable: { type: Boolean, default: true },
+    serviceAvailable: { type: Boolean, default: false },
     coverImage: { type: [String] },
     rating: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
@@ -58,6 +58,8 @@ const VendorSchema = new Schema(
     timestamps: true,
   }
 );
+VendorSchema.index({ email: 1, phone: 1 }, { unique: true });
+VendorSchema.index({ pincode: 1 }); // ✅ Add an index on pincode for fast searches
 
 const Vendor = mongoose.model<VendorDoc>("vendor", VendorSchema);
 
