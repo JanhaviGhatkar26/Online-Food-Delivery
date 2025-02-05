@@ -1,24 +1,54 @@
 import express, { Request, Response, NextFunction } from "express";
-import { FoodDoc, Vendor } from "../models";
-
+import { Food, FoodDoc, Vendor } from "../models";
+import { isRestaurantOpen } from "../utility";
+const getPaginationMeta = (page: number, limit: number, total: number) => {
+  const totalPages = Math.ceil(total / limit);
+  return {
+    currentPage: page,
+    totalPages,
+    totalResults: total,
+    hasNextPage: page < totalPages,
+    hasPrevPage: page > 1,
+  };
+};
 export const GetFoodAvailability = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const pincode = req.params.pincode;
+  const { pincode } = req.params;
+  const page = parseInt(req.params.page as string) || 1;
+  const limit = parseInt(req.params.limit as string) || 10;
+  const skip = (page - 1) * limit;
 
-  const result = await Vendor.find({
+  const totalVendors = await Vendor.countDocuments({
     pincode: pincode,
     serviceAvailable: true,
-    is_deleted: "0",
+    isDeleted: false,
+  });
+  const vendors = await Vendor.find({
+    pincode: pincode,
+    serviceAvailable: true,
+    isDeleted: false,
   })
-    .sort([["ratings", "descending"]])
+    .sort({ rating: -1 }) // ✅ Fixed sorting field
+    .limit(limit)
+    .skip(skip)
     .populate("foods");
-  if (result.length > 0) {
-    return res.status(200).json({ result });
+
+  if (!vendors.length) {
+    return res
+      .status(404)
+      .json({ success: false, message: "No available vendors found." });
   }
-  return res.status(400).json({ message: "No Data Found" });
+  return res.status(200).json({
+    success: true,
+    pagination: getPaginationMeta(page, limit, totalVendors),
+    data: vendors.map((vendor) => ({
+      ...vendor.toObject(),
+      isOpen: isRestaurantOpen(vendor.openingHours, vendor.closingHours),
+    })),
+  });
 };
 
 export const GetTopRestaurants = async (
@@ -27,17 +57,19 @@ export const GetTopRestaurants = async (
   next: NextFunction
 ) => {
   const pincode = req.params.pincode;
-  const result = await Vendor.find({
+  const vendors = await Vendor.find({
     pincode: pincode,
     serviceAvailable: true,
-    is_deleted: "0",
+    isDeleted: false,
   })
-    .sort([["ratings", "descending"]])
+    .sort({ rating: -1 }) // ✅ Fixed sorting field
     .limit(1);
-  if (result.length > 0) {
-    return res.status(200).json({ result });
+  if (!vendors.length) {
+    return res
+      .status(404)
+      .json({ success: false, message: "No top restaurants found." });
   }
-  return res.status(400).json({ message: "No Data Found" });
+  return res.status(200).json({ success: true, data: vendors });
 };
 
 export const GetFoodsIn30Min = async (
@@ -46,9 +78,19 @@ export const GetFoodsIn30Min = async (
   next: NextFunction
 ) => {
   const pincode = req.params.pincode;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+  const skip = (page - 1) * limit;
+
+  const totalFoods = await Food.countDocuments({
+    readyTime: { $lte: 30 },
+    isActive: true,
+    isDeleted: false,
+  });
+
   const result = await Vendor.find({
     pincode: pincode,
-    is_deleted: "0",
+    isDeleted: false,
   })
     .sort([["ratings", "descending"]])
     .populate("foods");

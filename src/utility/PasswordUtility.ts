@@ -1,4 +1,5 @@
 import bcrypt from "bcrypt";
+import moment from "moment-timezone";
 import { Request } from "express";
 import jwt from "jsonwebtoken";
 import { AuthPayload } from "../dto/Auth.dto";
@@ -66,4 +67,15 @@ export const RefreshAcessToken = async (req: Request) => {
   const { iat, exp, ...filteredDecoded } = decoded;
   const newAccessToken = await GenerateAccessSignature(filteredDecoded);
   return newAccessToken;
+};
+
+export const isRestaurantOpen = (
+  openingHours: string,
+  closingHours: string
+): boolean => {
+  const currentTime = moment().tz("Asia/Kolkata"); // Set your preferred timezone
+  const openingTime = moment(openingHours, "hh:mm A");
+  const closingTime = moment(closingHours, "hh:mm A");
+
+  return currentTime.isBetween(openingTime, closingTime);
 };

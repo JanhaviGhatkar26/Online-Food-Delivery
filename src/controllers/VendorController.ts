@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import {
+  CreateFoodDto,
   CreateFoodInput,
   CreateOfferInputs,
   EditVendorInputs,
@@ -295,28 +296,48 @@ export const AddFood = async (
 ) => {
   const user = req.user;
 
-  const { name, description, category, foodType, readyTime, price } = <
-    CreateFoodInput
-  >req.body;
+  // ✅ Validate Input Data
 
   if (user) {
+    const dto = Object.assign(new CreateFoodDto(), req.body);
+    const errors = await validate(dto);
+    if (errors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Validation failed",
+        errors: errors.map((e) => e.constraints),
+      });
+    }
+    const { name, description, category, foodType, readyTime, image, price } =
+      dto;
     const vendor = await FindVendor({ _id: user._id, activeCheck: true });
 
-    if (vendor !== null) {
-      const food = await Food.create({
-        vendorId: new mongoose.Types.ObjectId(vendor._id.toString()),
-        name: name,
-        description: description,
-        category: category,
-        price: price,
-        rating: 0,
-        readyTime: readyTime,
-        foodType: foodType,
-        images: [], // Initialize an empty array for images
-      });
+    if (!vendor) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Vendor not found" });
+    }
+    // ✅ Create Food Item in Database
+    const FoodObj = {
+      vendorId: new mongoose.Types.ObjectId(vendor._id.toString()),
+      name: name,
+      description: description,
+      category: category,
+      foodType: foodType,
+      price: price,
+      readyTime: readyTime || 30,
+      rating: 0,
+      images: [],
+    };
+    const food = await Food.create(FoodObj);
+    // ✅ Save Food ID in Vendor’s List
+    vendor.foods.push(food._id as mongoose.Schema.Types.ObjectId);
+    await vendor.save();
 
-      vendor.foods.push(food._id as mongoose.Schema.Types.ObjectId);
-      const result = await vendor.save();
+    // ✅ Handle File Upload
+    const files = req.files as Express.Multer.File[];
+    let images: string[] = [];
+    if (files && files.length > 0) {
       const foodImagePath = path.join(
         __dirname,
         "..",
@@ -327,34 +348,58 @@ export const AddFood = async (
       if (!fs.existsSync(foodImagePath)) {
         fs.mkdirSync(foodImagePath, { recursive: true });
       }
-      const files = req.files as [Express.Multer.File];
       console.log("files :", files);
-      let images: [string] = [""];
-      if (files.length > 0) {
-        files.map((file: Express.Multer.File) => {
-          const fileName = `${new Date().toISOString().replace(/:/g, "-")}_${
-            file.originalname
-          }`;
-          // Move the file to the correct folder
-          const filePath = path.join(foodImagePath, fileName);
-          fs.renameSync(file.path, filePath); // Move the uploaded file to the new folder
-          // return fileName; // Return the filename to be stored in the DB
+      files.forEach((file) => {
+        if (!file.mimetype.startsWith("image/")) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid file type. Only images are allowed.",
+          });
+        }
 
-          if (images[0] === "") {
-            images[0] = fileName;
-          } else {
-            images.push(fileName);
-          }
-        });
+        const filePath = path.join(foodImagePath, file.filename);
+        fs.renameSync(file.path, filePath);
+        images.push(file.filename);
+      });
 
-        console.log(images);
-        food.images = images;
-        await food.save();
-      }
-      return res.json(result);
+      // ✅ Update Food Images
+      food.images = images;
+      await food.save();
+      // files.map((file: Express.Multer.File) => {
+      //   const fileName = `${new Date().toISOString().replace(/:/g, "-")}_${
+      //     file.originalname
+      //   }`;
+      //   // Move the file to the correct folder
+      //   const filePath = path.join(foodImagePath, fileName);
+      //   fs.renameSync(file.path, filePath); // Move the uploaded file to the new folder
+      //   // return fileName; // Return the filename to be stored in the DB
+
+      //   if (images[0] === "") {
+      //     images[0] = fileName;
+      //   } else {
+      //     images.push(fileName);
+      //   }
+      // });
+
+      // console.log(images);
+      // food.images = images;
+      // await food.save();
     }
+    return res.status(201).json({
+      success: true,
+      message: "Food item added successfully",
+      data: {
+        foodId: String(food._id),
+        name: food.name,
+        price: food.price,
+        images: food.images,
+      },
+    });
+    // return res.json(result);
   }
-  return res.json({ message: "Unable to Update vendor profile " });
+  return res
+    .status(500)
+    .json({ success: false, message: "Unable to Update vendor profile" });
 };
 
 // export const AddFood = async (
@@ -404,10 +449,17 @@ export const GetFoods = async (
 ) => {
   const user = req.user;
   if (user) {
-    const foods = await Food.find({ vendorId: user._id });
-    if (foods !== null) {
-      return res.json(foods);
+    const foods = await Food.find({
+      vendorId: user._id,
+      isDeleted: false,
+    }).lean();
+    if (!foods || foods.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No food items found for this vendor.",
+      });
     }
+    return res.status(200).json({ success: true, data: foods });
   }
   return res.json({ message: "Foods not found!" });
 };
