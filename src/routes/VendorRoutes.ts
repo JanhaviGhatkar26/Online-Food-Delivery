@@ -6,7 +6,7 @@ import {
   GetOrderDetails,
   GetVendorProfile,
   ProcessOrder,
-  UpdateVendorCoverImage,
+  // UpdateVendorCoverImage,
   UpdateVendorProfile,
   UpdateVendorService,
   VendorLogin,
@@ -14,11 +14,12 @@ import {
   CreateOffer,
   DeleteOffers,
   EditOffer,
+  VendorLogout,
 } from "../controllers";
 import { Authenticate } from "../middlewares";
 const router = express.Router();
 
-import { images } from ".";
+import { images } from "./index";
 
 // const imageStorage = multer.diskStorage({
 //   destination: function (req, file, cb) {
@@ -36,12 +37,13 @@ import { images } from ".";
 // const images = multer({ storage: imageStorage }).array("images", 10); // Expecting an array of files under "images"
 
 router.post("/login", VendorLogin);
+router.post("/logout", VendorLogout);
 
 router.use(Authenticate);
 router.get("/profile", GetVendorProfile);
-router.patch("/profile", UpdateVendorProfile);
 router.patch("/service", UpdateVendorService);
-router.patch("/coverimage", images, UpdateVendorCoverImage);
+router.patch("/profile", images, UpdateVendorProfile);
+// router.patch("/coverimage", images, UpdateVendorCoverImage);
 
 // router.post("/food", AddFood);
 router.post("/food", images, AddFood);

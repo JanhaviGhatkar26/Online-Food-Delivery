@@ -1,9 +1,11 @@
-import { Type } from "class-transformer";
+import { Transform, Type } from "class-transformer";
 import {
+  IS_ARRAY,
   IsArray,
   IsBoolean,
   IsDate,
   IsEmail,
+  IsIn,
   IsNumber,
   IsOptional,
   IsPhoneNumber,
@@ -13,7 +15,12 @@ import {
   Min,
 } from "class-validator";
 import mongoose from "mongoose";
-
+export enum FoodTypeEnum {
+  VEG = "Veg",
+  NON_VEG = "Non-Veg",
+  FAST_FOOD = "Fast Food",
+  DESSERT = "Dessert",
+}
 export class CreateVendorDTO {
   @IsString()
   name: string;
@@ -23,6 +30,7 @@ export class CreateVendorDTO {
 
   @IsArray()
   @IsString({ each: true }) // Ensure all elements are strings
+  @IsIn(Object.values(FoodTypeEnum), { each: true })
   foodType: string[];
 
   @IsString()
