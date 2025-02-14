@@ -36,7 +36,7 @@ export const FindVendor = async ({
     filter["isActive"] = true;
   }
 
-  const vendor = await Vendor.findOne(filter).lean();
+  const vendor = await Vendor.findOne(filter);
   return vendor;
 };
 

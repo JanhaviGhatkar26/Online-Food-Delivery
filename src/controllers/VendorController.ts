@@ -68,7 +68,7 @@ export const VendorLogin = async (
       httpOnly: true,
       secure: true, // Use true in production
       sameSite: "strict",
-      maxAge: 21600, // 6hr
+      maxAge: 6 * 60 * 60 * 1000, // 6hr
     });
 
     return res.status(200).json({
@@ -145,7 +145,6 @@ export const UpdateVendorProfile = async (
         }
       }
     }
-
     if (req.files && (req.files as Express.Multer.File[]).length > 0) {
       const vendorCoverImgPath = path.join(
         __dirname,
@@ -465,7 +464,6 @@ export const GetFoods = async (
 };
 
 //Orders
-
 export const GetCurrentOrders = async (
   req: Request,
   res: Response,
@@ -618,3 +616,34 @@ export const DeleteOffers = async (
   res: Response,
   next: NextFunction
 ) => {};
+
+export const VendorLogout = async (req: Request, res: Response) => {
+  // Check if the tokens exist in cookies
+  const accessToken = req.cookies["x-auth-token"];
+  const refreshToken = req.cookies["x-ref-token"];
+
+  if (!accessToken || !refreshToken) {
+    return res.status(400).json({
+      success: false,
+      message: "User is already logged out or session expired.",
+    });
+  }
+
+  // Clear the authentication cookies
+  res.clearCookie("x-auth-token", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict",
+  });
+
+  res.clearCookie("x-ref-token", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict",
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Logged out successfully.",
+  });
+};

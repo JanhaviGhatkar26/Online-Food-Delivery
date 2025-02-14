@@ -28,7 +28,7 @@ export const ValidatePassword = async (
 
 export const GenerateAccessSignature = async (payload: Object) => {
   return jwt.sign(payload, ACCESS_TOKEN_SECRET, {
-    expiresIn: ACCESS_TOKEN_EXPIRY || "5m",
+    expiresIn: ACCESS_TOKEN_EXPIRY || "6h",
   });
 };
 

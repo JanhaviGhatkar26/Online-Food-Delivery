@@ -30,6 +30,7 @@ if (!fs.existsSync(imagePath)) {
 
 const imageStorage = multer.diskStorage({
   destination: function (req, file, cb) {
+    console.log("imagePath :", imagePath);
     cb(null, imagePath); // Use the same path as ExpressApp.ts
   },
   filename: function (req, file, cb) {
