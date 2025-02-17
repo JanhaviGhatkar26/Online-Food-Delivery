@@ -4,6 +4,7 @@ import {
   ShoppingRoutes,
   VendorRoute,
   CustomerRoutes,
+  CustomerAddressesRoutes,
 } from "../routes";
 import path from "path";
 import fs from "fs";
@@ -52,6 +53,7 @@ export default async (app: Application) => {
   app.use("/admin", AdminRoute);
   app.use("/Vendor", VendorRoute);
   app.use("/customer", CustomerRoutes);
+  app.use("/customer/addresses", CustomerAddressesRoutes);
   app.use(ShoppingRoutes);
   app.use("/", (req, res) => {
     res.send("Hi Admin");

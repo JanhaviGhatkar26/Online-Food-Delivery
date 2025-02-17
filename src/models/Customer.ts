@@ -55,6 +55,10 @@ const CustomerSchema = new Schema(
         delete ret.__v;
         delete ret.createdAt;
         delete ret.updatedAt;
+        delete ret.isDeleted;
+        delete ret.otp;
+        delete ret.verified;
+        delete ret.otp_expiry;
       },
     },
     timestamps: true,

@@ -68,7 +68,7 @@ export const CustomerSignUp = async (
     }
     const existingCustomer = await Customer.findOne({
       email: email,
-      is_deleted: "0",
+      isDeleted: "0",
     });
     if (existingCustomer !== null) {
       return res
@@ -208,8 +208,8 @@ export const CustomerLogin = async (
   const { email, password } = loginInputs;
   const customer = await Customer.findOne({
     email: email,
-    is_deleted: "0",
-    isActive: "1",
+    isActive: true,
+    isDeleted: false,
   });
   if (customer) {
     const validation = await ValidatePassword(
@@ -226,12 +226,16 @@ export const CustomerLogin = async (
       });
       return res.status(200).json({
         msg: "Logged in succesfully",
-        signature: signature,
-        verified: customer?.verified,
-        email: customer?.email,
+        data: {
+          signature: signature,
+          verified: customer?.verified,
+          email: customer?.email,
+        },
       });
     } else {
-      return res.status(400).json("Ones check you email or password");
+      return res.status(400).json({
+        msg: "Ones check you email or password",
+      });
     }
   }
   return res.status(404).json("Error With Login");
@@ -658,7 +662,7 @@ export const DeactiveMyAcc = async (
 // //     const { vendorId, cartItemId } = req.params;
 // //     const CustomerCart = await Cart.findOne({
 // //       customerId: customer?._id,
-// //       is_deleted: "0",
+// //       isDeleted: "0",
 // //     });
 
 // //     if (vendorId && cartItemId) {
@@ -740,7 +744,7 @@ export const DeactiveMyAcc = async (
 // //               pipeline: [
 // //                 {
 // //                   $match: {
-// //                     is_deleted: "0",
+// //                     isDeleted: "0",
 // //                   },
 // //                 },
 // //               ],
@@ -870,7 +874,7 @@ export const DeactiveMyAcc = async (
 // //           },
 // //           {
 // //             $set: {
-// //               is_deleted: {
+// //               isDeleted: {
 // //                 $cond: {
 // //                   if: {
 // //                     $eq: [
@@ -897,7 +901,7 @@ export const DeactiveMyAcc = async (
 // //             {
 // //               $set: {
 // //                 vendorCarts: cartData[0].vendorCarts,
-// //                 is_deleted: cartData[0].is_deleted,
+// //                 isDeleted: cartData[0].isDeleted,
 // //               },
 // //             },
 // //             { new: true }

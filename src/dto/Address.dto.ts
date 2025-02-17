@@ -2,6 +2,7 @@ import { Transform } from "class-transformer";
 import {
   IsEnum,
   IsNumberString,
+  IsOptional,
   IsString,
   Matches,
   MaxLength,
@@ -34,5 +35,38 @@ export class AddAddressDTO {
     { message: "Pincode must be a numeric value" }
   ) // Ensures only numbers
   @Matches(/^\d{6}$/, { message: "Pincode must be exactly 6 digits" }) // Ensures exactly 6 digits
+  pincode: string;
+}
+export class UpdateAddressDTO {
+  @IsEnum(["home", "work", "hotel", "other"], {
+    message: "Tag must be one of home, work, hotel, other",
+  })
+  @Transform(({ value }) => value.toLowerCase()) // Transform the value to lowercase
+  @IsOptional()
+  tag: "home" | "work" | "hotel" | "other";
+
+  @IsString()
+  @MinLength(3, { message: "Line 1 must be at least 3 characters long" })
+  @MaxLength(50, { message: "Line 1 cannot exceed 50 characters" })
+  @IsOptional()
+  line1: string;
+
+  @IsString()
+  @MinLength(3, { message: "Line 2 must be at least 3 characters long" })
+  @MaxLength(50, { message: "Line 2 cannot exceed 50 characters" })
+  @IsOptional()
+  line2: string;
+
+  @IsString()
+  @MinLength(3, { message: "City name must be at least 3 characters long" })
+  @IsOptional()
+  city: string;
+
+  @IsNumberString(
+    { no_symbols: true },
+    { message: "Pincode must be a numeric value" }
+  ) // Ensures only numbers
+  @Matches(/^\d{6}$/, { message: "Pincode must be exactly 6 digits" }) // Ensures exactly 6 digits
+  @IsOptional()
   pincode: string;
 }
