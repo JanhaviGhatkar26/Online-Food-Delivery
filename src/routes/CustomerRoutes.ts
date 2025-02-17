@@ -14,6 +14,7 @@ import {
   // DeleteCart,
   // DeleteCartItem,
   DeactiveMyAcc,
+  addAddressToCustomer,
 } from "../controllers";
 import { Authenticate } from "../middlewares";
 
@@ -30,6 +31,7 @@ router.use(Authenticate);
 
 /* ------------------- Authentication --------------------- */
 router.patch("/verify", CustomerVerify);
+router.patch("/addresses/:customerId", addAddressToCustomer);
 
 /* ------------------- OTP / request OTP --------------------- */
 router.get("/otp", RequestOtp);

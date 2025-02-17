@@ -1,4 +1,11 @@
-import { IsEmail, IsEnum, IsOptional, Length, Matches } from "class-validator";
+import {
+  IsBoolean,
+  IsEmail,
+  IsEnum,
+  IsOptional,
+  Length,
+  Matches,
+} from "class-validator";
 export class CreateCustomerInput {
   @IsEmail()
   email: string;
@@ -19,8 +26,9 @@ export class CreateCustomerInput {
   )
   password: string;
 
-  @IsEnum(["1", "0"])
-  status: "1" | "0";
+  @IsBoolean()
+  @IsOptional()
+  status: boolean;
 }
 
 export class CustomerLoginInputs {
@@ -39,9 +47,9 @@ export class EditCustomerProfileInputs {
   @Length(3, 16)
   lastName?: string;
 
-  @IsOptional()
-  @Length(6, 16)
-  address?: string;
+  // @IsOptional()
+  // @Length(6, 16)
+  // address?: string;
 
   @IsOptional()
   @Length(10, 10) // Ensure it's exactly 10 characters long

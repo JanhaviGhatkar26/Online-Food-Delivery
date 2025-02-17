@@ -64,7 +64,7 @@ export const GetTopRestaurants = async (
     isDeleted: false,
   })
     .sort({ rating: -1 }) // ✅ Fixed sorting field
-    .limit(10);
+    .limit(15);
   if (!vendors.length) {
     return res
       .status(404)

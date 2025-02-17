@@ -1,5 +1,6 @@
 import { plainToClass } from "class-transformer";
 import { json, NextFunction, Request, Response } from "express";
+import { addAddresses } from "./CustomerAddressFN";
 import {
   CartInputs,
   CreateCustomerInput,
@@ -26,101 +27,106 @@ export const CustomerSignUp = async (
   res: Response,
   next: NextFunction
 ) => {
-  const customerInputs = plainToClass(CreateCustomerInput, req.body);
-  const inputError = await validate(customerInputs, {
-    validationError: { target: true },
-  });
-  if (inputError.length > 0) {
-    return res.status(400).json(inputError);
+  const dto = Object.assign(new CreateCustomerInput(), req.body);
+  const errors = await validate(dto);
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Validation failed",
+      errors: errors.map((e) => e.constraints),
+    });
   }
-  const { email, password, phone, status } = customerInputs;
-  const salt = await GenerateSalt();
-  const userPassword = await GeneratePassword(password, salt);
-  const { otp, expiry } = GenerateOTP();
-  const customerData = {
-    firstName: "",
-    lastName: "",
-    phone: phone,
-    email: email,
-    address: "",
-    password: userPassword,
-    salt: salt,
-    verified: false,
-    otp: otp,
-    otp_expiry: expiry,
-    lat: 0,
-    lng: 0,
-    orders: [],
-  };
-  if (status !== undefined) {
-    Object.assign(customerData, { isActive: status });
-  }
-  const existingCustomer = await Customer.findOne({
-    email: email,
-    is_deleted: "0",
-  });
-  if (existingCustomer !== null) {
-    return res.status(400).json({ message: "Email already exist!" });
-  }
-  const newCustomer = await Customer.create(customerData);
+  const { email, password, phone, status } = dto;
+  const addAddress = req.body.hasOwnProperty("addAddress")
+    ? req.body.addAddress
+    : undefined;
+  const addressData = req.body.addressData;
 
-  if (newCustomer) {
+  const session = await mongoose.startSession(); // Start the session
+
+  try {
+    session.startTransaction(); // Start the transaction
+
+    const salt = await GenerateSalt();
+    const userPassword = await GeneratePassword(password, salt);
+    const { otp, expiry } = GenerateOTP();
+
+    const customerData = {
+      firstName: "",
+      lastName: "",
+      phone: phone,
+      email: email,
+      password: userPassword,
+      salt: salt,
+      verified: false,
+      otp: otp,
+      otp_expiry: expiry,
+      orders: [],
+    };
+    if (status !== undefined) {
+      Object.assign(customerData, { isActive: status });
+    }
+    const existingCustomer = await Customer.findOne({
+      email: email,
+      is_deleted: "0",
+    });
+    if (existingCustomer !== null) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email already exist!" });
+    }
+    const [newCustomer] = await Customer.create([customerData], { session });
+
+    if (!newCustomer) {
+      return res.status(400).json({
+        success: false,
+        message: "Something went wrong while signup.",
+      });
+    }
+    if (addAddress !== undefined && addAddress === true && addressData) {
+      const addedAddress = await addAddresses(
+        newCustomer._id.toString(),
+        addressData,
+        session
+      );
+      console.log("Address Added:", addedAddress);
+    }
     // Attempt to send the OTP
     const otpResponse = await onRequestOtp(otp, phone);
     if (!otpResponse) {
-      return res
-        .status(400)
-        .json({ message: "Failed to send OTP. Please try again." });
+      return res.status(400).json({
+        success: false,
+        message: "Failed to send OTP. Please try again.",
+      });
     }
 
+    // Step 4: Commit the transaction
+    await session.commitTransaction();
     // Generate the signature
     const signature = await GenerateAccessSignature({
       _id: String(newCustomer._id),
       email: newCustomer.email,
       verified: newCustomer.verified,
     });
-
     return res.status(200).json({
       signature: signature,
       verified: newCustomer.verified,
       email: newCustomer.email,
     });
+  } catch (error) {
+    await session.abortTransaction();
+    console.error("Error during customer signup:", error.message);
+
+    return res.status(400).json({
+      success: false,
+      message: "An error occurred during signup. Please try again.",
+      error: error.message,
+    });
+  } finally {
+    // End the session regardless of success or failure
+    session.endSession();
   }
-  return res.status(400).json("error to signup");
 }; //1st step
-
-export const RequestOtp = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const customer = req.user;
-
-  if (customer) {
-    const profile = await Customer.findById(customer._id);
-
-    if (profile) {
-      const { otp, expiry } = GenerateOTP();
-      profile.otp = otp;
-      profile.otp_expiry = expiry;
-
-      await profile.save();
-      const sendCode = await onRequestOtp(otp, profile.phone);
-
-      if (!sendCode) {
-        return res
-          .status(400)
-          .json({ message: "Failed to verify your phone number" });
-      }
-
-      return res
-        .status(200)
-        .json({ message: "OTP sent to your registered Mobile Number!" });
-    }
-  }
-
-  return res.status(400).json({ msg: "Error with Requesting OTP" });
-}; // 2nd step
 
 export const CustomerVerify = async (
   req: Request,
@@ -153,7 +159,39 @@ export const CustomerVerify = async (
   }
 
   return res.status(400).json({ msg: "Unable to verify Customer" });
-}; // 3rd step
+}; // 2rd step
+export const RequestOtp = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const customer = req.user;
+
+  if (customer) {
+    const profile = await Customer.findById(customer._id);
+
+    if (profile) {
+      const { otp, expiry } = GenerateOTP();
+      profile.otp = otp;
+      profile.otp_expiry = expiry;
+
+      await profile.save();
+      const sendCode = await onRequestOtp(otp, profile.phone);
+
+      if (!sendCode) {
+        return res
+          .status(400)
+          .json({ message: "Failed to verify your phone number" });
+      }
+
+      return res
+        .status(200)
+        .json({ message: "OTP sent to your registered Mobile Number!" });
+    }
+  }
+
+  return res.status(400).json({ msg: "Error with Requesting OTP" });
+}; // 3nd step
 
 export const CustomerLogin = async (
   req: Request,

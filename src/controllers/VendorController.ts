@@ -281,11 +281,21 @@ export const UpdateVendorService = async (
     if (exsitingVendor !== null) {
       exsitingVendor.serviceAvailable = !exsitingVendor.serviceAvailable;
       const saveResult = await exsitingVendor.save();
-      return res.json(saveResult);
+      return res.status(200).json({
+        success: true,
+        message: "Vendor service upgraded",
+        data: saveResult,
+      });
     }
   }
-  return res.json({ message: "Unable to Update vendor profile " });
+  return res.status(500).json({
+    success: false,
+    message: "Unable to Update vendor service",
+    data: {},
+  });
 };
+
+/*👇👇👇👇 Pending checking for Add Food 👇👇👇👇*/
 
 // Add food item
 export const AddFood = async (

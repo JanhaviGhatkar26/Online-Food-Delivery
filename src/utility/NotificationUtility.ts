@@ -17,7 +17,8 @@ export const onRequestOtp = async (otp: number, toPhoneNUmber: string) => {
   const response = await client.messages.create({
     body: `Your otp is ${otp}`,
     from: "+12294750028", // From a valid Twilio number
-    to: `+91${toPhoneNUmber}`, // Text your number
+    to: `+917738761273`, // Text your number
+    // to: `+91${toPhoneNUmber}`, // Text your number
   });
   return response;
 };

@@ -45,6 +45,8 @@ router.patch("/service", UpdateVendorService);
 router.patch("/profile", images, UpdateVendorProfile);
 // router.patch("/coverimage", images, UpdateVendorCoverImage);
 
+/*👇👇👇👇 Pending checking for Add Food 👇👇👇👇*/
+
 // router.post("/food", AddFood);
 router.post("/food", images, AddFood);
 router.get("/foods", GetFoods);

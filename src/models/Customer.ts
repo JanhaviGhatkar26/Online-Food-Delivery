@@ -5,16 +5,12 @@ interface CustomerDoc extends Document {
   lastName: string;
   phone: string;
   email: string;
-  address: string;
   password: string;
+  addresses: mongoose.Schema.Types.ObjectId[];
   salt: string;
   verified: boolean;
   otp: number;
   otp_expiry: Date;
-  location: {
-    type: string;
-    coordinates: [number, number]; // [longitude, latitude]
-  };
   isActive: boolean;
   isDeleted: boolean;
   orders: mongoose.Schema.Types.ObjectId[];
@@ -25,8 +21,14 @@ const CustomerSchema = new Schema(
     firstName: { type: String },
     lastName: { type: String },
     phone: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    address: { type: String },
+    email: { type: String, required: true },
+    addresses: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "customer_address",
+        required: true,
+      },
+    ],
     password: { type: String, required: true },
     salt: { type: String, required: true },
     verified: { type: Boolean, required: true, default: false },
@@ -36,10 +38,6 @@ const CustomerSchema = new Schema(
       required: true,
       default: () => new Date(Date.now() + 10 * 60 * 1000),
     }, // 10 min expiry
-    location: {
-      type: { type: String, enum: ["Point"], default: "Point" },
-      coordinates: { type: [Number], index: "2dsphere" }, // GeoJSON for location-based searches
-    },
     orders: [
       {
         type: Schema.Types.ObjectId,

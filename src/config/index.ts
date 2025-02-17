@@ -7,7 +7,7 @@ dotenv.config({
 // export const MONGO_URL = `mongodb://localhost:27017/${
 //   process.env.DB_NAME || "online_food_delivery"
 // }`;
-export const MONGO_URL = `${process.env.MONGODB_URL}${process.env.DB_NAME}`;
+export const MONGO_URL = `${process.env.MONGODB_URL}${process.env.DB_NAME}?${process.env.REPLICASET}`;
 export const ACCESS_TOKEN_SECRET: string =
   process.env.ACCESS_TOKEN_SECRET || "";
 export const ACCESS_TOKEN_EXPIRY: string =
