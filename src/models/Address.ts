@@ -2,10 +2,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 
 interface addressDoc extends Document {
   customer: mongoose.Schema.Types.ObjectId; // Reference to the Customer
-  tag: "home";
-  work;
-  hotel;
-  other; // Enum for predefined tags
+  tag: "home" | "work" | "hotel" | "other"; // Enum for predefined tags
   line1: string;
   line2: string;
   city: string;
