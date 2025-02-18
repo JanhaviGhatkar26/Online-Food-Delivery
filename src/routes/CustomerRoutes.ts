@@ -31,7 +31,7 @@ router.use(Authenticate);
 
 /* ------------------- Authentication --------------------- */
 router.patch("/verify", CustomerVerify);
-router.patch("/addresses/:customerId", addAddressToCustomer);
+router.patch("/addresses", addAddressToCustomer);
 
 /* ------------------- OTP / request OTP --------------------- */
 router.get("/otp", RequestOtp);

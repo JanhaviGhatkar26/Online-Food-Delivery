@@ -4,6 +4,9 @@ import { validate } from "class-validator";
 import { NextFunction, Request, Response } from "express";
 import { AddAddressDTO, UpdateAddressDTO } from "../dto";
 
+/*
+Functions 
+ */
 export const addAddresses = async (
   customerId: string,
   addressData: AddAddressDTO,
@@ -21,7 +24,7 @@ export const addAddresses = async (
     isDeleted: false,
     isActive: true,
   }).session(session);
-  console.log("customer :", customer);
+
   if (!customer) throw new Error("Customer not found");
 
   // Step 3: Validate input data using DTO
@@ -32,8 +35,20 @@ export const addAddresses = async (
       errors.map((err) => Object.values(err.constraints)).join(", ")
     );
   }
-
+  // Step 4: Check if the customer already has any addresses
+  const customerAddresses = customer.addresses || [];
   // Step 4: Create the new address
+  if (customerAddresses.length === 0) {
+    addressData.isDefault = true;
+  } else if (addressData.isDefault) {
+    // If the user wants to add an address with `isDefault: true`,
+    // we need to make sure only one address is default.
+    await CustomerAddress.updateMany(
+      { customer: customerId },
+      { $set: { isDefault: false } },
+      { session }
+    );
+  }
   const newAddress = await CustomerAddress.create(
     [
       {
@@ -132,6 +147,9 @@ export const UpdateAddressToCustomer = async (
     }
     // Filter out only fields that are present in the request body
     const updateFields: Partial<UpdateAddressDTO> = {};
+    // Check if `isDefault` is explicitly passed as true
+    const isDefaultUpdated = addressData.isDefault;
+
     for (const key of Object.keys(addressData)) {
       console.log("addressData :", addressData);
       if (addressData[key] !== undefined) {
@@ -143,6 +161,17 @@ export const UpdateAddressToCustomer = async (
     session.startTransaction();
 
     try {
+      // Handle updating the `isDefault` flag dynamically
+      if (isDefaultUpdated !== undefined) {
+        if (isDefaultUpdated) {
+          // If `isDefault` is true, make all other addresses for the customer `isDefault: false`
+          await CustomerAddress.updateMany(
+            { customer: _id, _id: { $ne: addressId } }, // Exclude the current address
+            { $set: { isDefault: false } },
+            { session }
+          );
+        }
+      }
       const updatedAddress = await CustomerAddress.findOneAndUpdate(
         { _id: addressId, customer: _id },
         { $set: updateFields },
@@ -204,7 +233,6 @@ export const DeleteAddressById = async (
   next: NextFunction
 ) => {
   const { _id } = req.user;
-
   const { addressId } = req.params;
   if (req.user) {
     if (
@@ -221,11 +249,24 @@ export const DeleteAddressById = async (
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
+      // Step 1: Check if the address being deleted is the default one
+      const addressToDelete = await CustomerAddress.findOne(
+        { _id: addressId, customer: _id },
+        null,
+        { session }
+      );
+      if (!addressToDelete) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(404).json({
+          success: false,
+          message: "Address not found or does not belong to the customer",
+        });
+      }
+      const isDefault = addressToDelete.isDefault;
+      // Step 2: Delete the address
       const deletedAddress = await CustomerAddress.findOneAndDelete(
-        {
-          _id: addressId,
-          customer: _id,
-        },
+        { _id: addressId, customer: _id },
         { session }
       );
       if (!deletedAddress) {
@@ -236,8 +277,7 @@ export const DeleteAddressById = async (
           message: "Address not found or does not belong to the customer",
         });
       }
-
-      // Step 2: Remove address reference from Customer collection
+      // Step 3: Remove address reference from Customer collection
       const updatedCustomer = await Customer.findByIdAndUpdate(
         _id,
         { $pull: { addresses: addressId } }, // Remove address from array
@@ -251,8 +291,24 @@ export const DeleteAddressById = async (
           message: "Failed to update customer record",
         });
       }
-
-      // Commit the transaction if both operations succeed
+      // Step 4: If the deleted address was the default, assign a new default address (if available)
+      if (isDefault) {
+        const anotherAddress = await CustomerAddress.findOne(
+          { customer: _id },
+          null,
+          { session, sort: { createdAt: -1 } } // Fetch the latest address
+        );
+        if (anotherAddress) {
+          await CustomerAddress.updateOne(
+            { _id: anotherAddress._id },
+            { $set: { isDefault: true } },
+            { session }
+          );
+          console.log(
+            `Since the deleted address was default, setting new default address: ${anotherAddress._id}`
+          );
+        }
+      }
       await session.commitTransaction();
       session.endSession();
 
@@ -275,6 +331,82 @@ export const DeleteAddressById = async (
     }
   }
 };
+// export const DeleteAddressById = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   const { _id } = req.user;
+//   const { addressId } = req.params;
+//   if (req.user) {
+//     if (
+//       !mongoose.Types.ObjectId.isValid(_id) ||
+//       !mongoose.Types.ObjectId.isValid(addressId)
+//     ) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Invalid customer ID or address ID format",
+//       });
+//     }
+//     console.log(`Deleting addressId ${addressId} for customer ${_id}`);
+//     // Start a session for transaction
+//     const session = await mongoose.startSession();
+//     session.startTransaction();
+//     try {
+//       const deletedAddress = await CustomerAddress.findOneAndDelete(
+//         {
+//           _id: addressId,
+//           customer: _id,
+//         },
+//         { session }
+//       );
+//       if (!deletedAddress) {
+//         await session.abortTransaction();
+//         session.endSession();
+//         return res.status(404).json({
+//           success: false,
+//           message: "Address not found or does not belong to the customer",
+//         });
+//       }
+
+//       // Step 2: Remove address reference from Customer collection
+//       const updatedCustomer = await Customer.findByIdAndUpdate(
+//         _id,
+//         { $pull: { addresses: addressId } }, // Remove address from array
+//         { session, new: true }
+//       );
+//       if (!updatedCustomer) {
+//         await session.abortTransaction();
+//         session.endSession();
+//         return res.status(500).json({
+//           success: false,
+//           message: "Failed to update customer record",
+//         });
+//       }
+
+//       // Commit the transaction if both operations succeed
+//       await session.commitTransaction();
+//       session.endSession();
+
+//       return res.status(200).json({
+//         success: true,
+//         message: "Address deleted successfully",
+//       });
+//     } catch (error) {
+//       await session.abortTransaction();
+//       console.error("Error during updating customer details:", error.message);
+
+//       return res.status(400).json({
+//         success: false,
+//         message:
+//           "An error occurred during updating the customer details. Please try again.",
+//         error: error.message,
+//       });
+//     } finally {
+//       session.endSession();
+//     }
+//   }
+// };
 
 export const GeteAddressByID = async (
   req: Request,
@@ -282,7 +414,6 @@ export const GeteAddressByID = async (
   next: NextFunction
 ) => {
   const customer = req.user;
-
   const { addressId } = req.params;
   if (req.user) {
     if (

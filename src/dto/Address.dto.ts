@@ -1,5 +1,6 @@
 import { Transform } from "class-transformer";
 import {
+  IsBoolean,
   IsEnum,
   IsNumberString,
   IsOptional,
@@ -36,6 +37,10 @@ export class AddAddressDTO {
   ) // Ensures only numbers
   @Matches(/^\d{6}$/, { message: "Pincode must be exactly 6 digits" }) // Ensures exactly 6 digits
   pincode: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isDefault: boolean = false;
 }
 export class UpdateAddressDTO {
   @IsEnum(["home", "work", "hotel", "other"], {
@@ -69,4 +74,8 @@ export class UpdateAddressDTO {
   @Matches(/^\d{6}$/, { message: "Pincode must be exactly 6 digits" }) // Ensures exactly 6 digits
   @IsOptional()
   pincode: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isDefault: boolean = false;
 }

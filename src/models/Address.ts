@@ -7,6 +7,7 @@ interface addressDoc extends Document {
   line2: string;
   city: string;
   pincode: string;
+  isDefault?: boolean;
 }
 
 const AddressSchema = new Schema(
@@ -25,6 +26,7 @@ const AddressSchema = new Schema(
     line2: { type: String, required: true },
     city: { type: String, required: true },
     pincode: { type: String, required: true },
+    isDefault: { type: Boolean, default: false },
   },
   {
     toJSON: {
