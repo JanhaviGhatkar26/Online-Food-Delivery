@@ -9,17 +9,18 @@ export interface OrderDoc extends Document {
     priceAtTime: number;
   }[];
   totalAmount: number;
+  addressId: mongoose.Schema.Types.ObjectId;
   orderDate: Date;
-  paidThrough: string;
+  paidThrough: "cod" | "uip" | "netbanking" | "creditcard" | "debitcard"; // Enum added
   paymentResponses: Record<string, any>; // Can store JSON
   orderStatus:
-    | "Pending"
-    | "Accepted"
-    | "Preparing"
-    | "Ready"
-    | "Out for Delivery"
-    | "Delivered"
-    | "Cancelled";
+    | "pending"
+    | "accepted"
+    | "preparing"
+    | "ready"
+    | "out for delivery"
+    | "delivered"
+    | "cancelled";
   remarks: string;
   deliveryId: mongoose.Schema.Types.ObjectId | null;
   appliedOffers: boolean;
@@ -39,21 +40,30 @@ const OrderSchema = new Schema(
       },
     ],
     totalAmount: { type: Number, required: true },
+    addressId: {
+      type: Schema.Types.ObjectId,
+      ref: "customer_address",
+      required: true,
+    }, // Added address reference
     orderDate: { type: Date, default: Date.now },
-    paidThrough: { type: String, required: true },
+    paidThrough: {
+      type: String,
+      enum: ["cod", "uip", "netbanking", "creditcard", "debitcard"],
+      required: true,
+    },
     paymentResponses: { type: Schema.Types.Mixed, default: {} }, // Stores payment details
     orderStatus: {
       type: String,
       enum: [
-        "Pending",
-        "Accepted",
-        "Preparing",
-        "Ready",
-        "Out for Delivery",
-        "Delivered",
-        "Cancelled",
+        "pending",
+        "accepted",
+        "preparing",
+        "ready",
+        "out for delivery",
+        "delivered",
+        "cancelled",
       ],
-      default: "Pending",
+      default: "pending",
     },
     remarks: { type: String },
     deliveryId: { type: Schema.Types.ObjectId, ref: "delivery", default: null },
