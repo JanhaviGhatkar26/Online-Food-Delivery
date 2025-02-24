@@ -9,11 +9,11 @@ import {
   // UpdateVendorCoverImage,
   UpdateVendorProfile,
   UpdateVendorService,
-  VendorLogin,
-  GetOffers,
-  CreateOffer,
-  DeleteOffers,
-  EditOffer,
+  // VendorLogin,
+  // GetOffers,
+  // CreateOffer,
+  // DeleteOffers,
+  // EditOffer,
   VendorLogout,
 } from "../controllers";
 import { Authenticate } from "../middlewares";
@@ -36,7 +36,7 @@ import { images } from "./index";
 
 // const images = multer({ storage: imageStorage }).array("images", 10); // Expecting an array of files under "images"
 
-router.post("/login", VendorLogin);
+// router.post("/login", VendorLogin);
 router.post("/logout", VendorLogout);
 
 router.use(Authenticate);
@@ -56,11 +56,11 @@ router.get("/orders", GetCurrentOrders);
 router.put("/order/:id/process", ProcessOrder);
 router.get("/order/:id", GetOrderDetails);
 
-//Offers
-router.get("/offers", GetOffers);
-router.post("/offer", CreateOffer);
-router.put("/offer/:id", EditOffer);
-router.delete("/offer/:id", DeleteOffers);
+// //Offers
+// router.get("/offers", GetOffers);
+// router.post("/offer", CreateOffer);
+// router.put("/offer/:id", EditOffer);
+// router.delete("/offer/:id", DeleteOffers);
 
 router.get("/", (req: Request, res: Response, next: NextFunction) => {
   res.json({ message: "Hello from  Vendor" });

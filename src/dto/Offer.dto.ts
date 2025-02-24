@@ -2,6 +2,7 @@ import { Transform } from "class-transformer";
 import {
   ArrayNotEmpty,
   IsArray,
+  IsBoolean,
   IsDate,
   IsEnum,
   IsNotEmpty,
@@ -91,6 +92,10 @@ export class CreateOfferDto {
     Array.isArray(value) ? value.map((pincode) => pincode.toString()) : []
   )
   pincodes: string[];
+
+  @IsBoolean()
+  @IsOptional()
+  isActive: boolean;
 }
 export class UpdateOfferDto {
   @IsString()
@@ -132,4 +137,8 @@ export class UpdateOfferDto {
     Array.isArray(value) ? value.map((pincode) => pincode.toString()) : []
   )
   pincodes: string[];
+
+  @IsBoolean()
+  @IsOptional()
+  isActive: boolean;
 }

@@ -1,16 +1,25 @@
 import { NextFunction, Request, Response } from "express";
-import { CreateVendorDTO, CreateVendorInput, findVendor } from "../dto";
+import {
+  CreateVendorDTO,
+  CreateVendorInput,
+  CustomerLoginInputs,
+  findVendor,
+  VendorLoginInputs,
+} from "../dto";
 import { Customer, Vendor } from "../models";
 import {
   GenerateAccessSignature,
   GeneratePassword,
+  GenerateRefreshSignature,
   GenerateSalt,
   RefreshAcessToken,
+  ValidatePassword,
 } from "../utility";
 import path from "path";
 import fs from "fs";
 import { validate } from "class-validator";
 import mongoose from "mongoose";
+import { plainToClass } from "class-transformer";
 
 export const FindVendor = async ({
   _id,
@@ -286,4 +295,109 @@ export const RefreshToken = async (req: Request, res: Response) => {
   } catch (err) {
     return res.status(403).json({ message: err });
   }
+};
+
+export const GlobalLogin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  // Validate login input
+  const loginInputs = plainToClass(CustomerLoginInputs, req.body);
+  const loginErrors = await validate(loginInputs, {
+    validationError: { target: false },
+  });
+
+  if (loginErrors.length > 0) {
+    return res.status(400).json({ success: false, errors: loginErrors });
+  }
+
+  const { email, password } = loginInputs;
+  let user;
+  // Check in Customer Table
+  user = await Customer.findOne({
+    email,
+    isActive: true,
+    isDeleted: false,
+  });
+  let role = "customer";
+
+  if (!user) {
+    // If not found in customers, check in Vendor Table
+    user = await FindVendor({ email: email, activeCheck: true });
+    role = "vendor";
+  }
+
+  if (!user) {
+    return res
+      .status(401)
+      .json({ success: false, message: "Invalid login credentials." });
+  }
+
+  // Validate password
+  const isPasswordValid = await ValidatePassword(
+    password,
+    user.password,
+    user.salt
+  );
+  if (!isPasswordValid) {
+    return res
+      .status(401)
+      .json({ success: false, message: "Invalid login credentials." });
+  }
+
+  // Generate access and refresh tokens
+  const accessToken = await GenerateAccessSignature(
+    role === "vendor"
+      ? {
+          _id: String(user?._id),
+          name: user?.name,
+          email: user?.email,
+          role: role,
+          foodType: user?.foodType,
+        }
+      : {
+          _id: String(user._id),
+          email: user.email,
+          role: role,
+          verified: user.verified || false,
+        }
+  );
+
+  const refreshToken = await GenerateRefreshSignature(
+    role === "vendor"
+      ? { _id: String(user._id), name: user.name, email: user.email }
+      : {
+          _id: String(user._id),
+          email: user.email,
+          verified: user.verified || false,
+        }
+  );
+
+  // Set cookies
+  res.cookie("x-ref-token", refreshToken, {
+    httpOnly: true,
+    secure: true, // Use true in production
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+
+  res.cookie("x-auth-token", accessToken, {
+    httpOnly: true,
+    secure: true, // Use true in production
+    sameSite: "strict",
+    maxAge: 6 * 60 * 60 * 1000, // 6 hours
+  });
+
+  return res.status(200).json({
+    success: true,
+    message: "Logged in successfully.",
+    data: {
+      _id: String(user._id),
+      email: user.email,
+      token: accessToken,
+      ...(role !== "vendor" && { verified: user.verified || false }),
+      role: role,
+    },
+  });
 };

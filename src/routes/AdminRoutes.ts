@@ -4,11 +4,13 @@ import {
   DeleteCustomerAccount,
   GetVendor,
   GetVendorById,
+  GlobalLogin,
   RefreshToken,
 } from "../controllers";
 import { images } from ".";
 const router = express.Router();
 
+// router.post("/login", GlobalLogin);
 router.get("/RefreshToken", RefreshToken);
 router.post("/vendor", images, CreateVendor);
 router.get("/vendor", GetVendor);

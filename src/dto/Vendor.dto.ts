@@ -16,10 +16,10 @@ import {
 } from "class-validator";
 import mongoose from "mongoose";
 export enum FoodTypeEnum {
-  VEG = "Veg",
-  NON_VEG = "Non-Veg",
-  FAST_FOOD = "Fast Food",
-  DESSERT = "Dessert",
+  VEG = "veg",
+  NON_VEG = "non-veg",
+  FAST_FOOD = "fast food",
+  DESSERT = "dessert",
 }
 export class CreateVendorDTO {
   @IsString()
@@ -31,6 +31,9 @@ export class CreateVendorDTO {
   @IsArray()
   @IsString({ each: true }) // Ensure all elements are strings
   @IsIn(Object.values(FoodTypeEnum), { each: true })
+  @Transform(({ value }) =>
+    Array.isArray(value) ? value.map((item) => item.toLowerCase()) : []
+  )
   foodType: string[];
 
   @IsString()
@@ -139,8 +142,10 @@ export interface CreateVendorInput {
   coverImage?: string[];
 }
 
-export interface VendorLoginInputs {
+export class VendorLoginInputs {
+  @IsEmail()
   email: string;
+  @Length(6, 12)
   password: string;
 }
 
@@ -159,45 +164,45 @@ export interface EditVendorInputs {
   coverImage?: string[];
 }
 
-export class CreateOfferInputs {
-  @IsString()
-  offerType: string;
+// export class CreateOfferInputs {
+//   @IsString()
+//   offerType: string;
 
-  @IsString()
-  title: string;
+//   @IsString()
+//   title: string;
 
-  @IsString()
-  description: string;
+//   @IsString()
+//   description: string;
 
-  @IsNumber()
-  @Min(0)
-  minValue: number;
+//   @IsNumber()
+//   @Min(0)
+//   minValue: number;
 
-  @IsNumber()
-  @Min(0)
-  offerAmount: number;
+//   @IsNumber()
+//   @Min(0)
+//   offerAmount: number;
 
-  @IsDate()
-  startValidity: Date;
+//   @IsDate()
+//   startValidity: Date;
 
-  @IsDate()
-  endValidity: Date;
+//   @IsDate()
+//   endValidity: Date;
 
-  @IsString()
-  promocode: string;
+//   @IsString()
+//   promocode: string;
 
-  @IsString()
-  promoType: string;
+//   @IsString()
+//   promoType: string;
 
-  @IsArray()
-  bank: [any];
+//   @IsArray()
+//   bank: [any];
 
-  @IsArray()
-  bins: [any];
+//   @IsArray()
+//   bins: [any];
 
-  @IsString()
-  pincode: string;
+//   @IsString()
+//   pincode: string;
 
-  isActive: boolean;
-  vendors: [any];
-}
+//   isActive: boolean;
+//   vendors: [any];
+// }

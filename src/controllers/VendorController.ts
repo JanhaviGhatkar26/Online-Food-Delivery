@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import {
   CreateFoodDto,
   CreateFoodInput,
-  CreateOfferInputs,
   EditVendorInputs,
   UpdateVendorDTO,
   VendorLoginInputs,
@@ -21,72 +20,72 @@ import { validate } from "class-validator";
 import mongoose from "mongoose";
 
 //Login the vendor by email and password
-export const VendorLogin = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const { email, password } = <VendorLoginInputs>req.body;
-  console.log(email, password);
-  if (!email || !password) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Email and password are required." });
-  }
-  const exsitingVendor = await FindVendor({ email: email, activeCheck: true });
-  // ✅ Find vendor with activeCheck
-  if (!exsitingVendor) {
-    return res
-      .status(401)
-      .json({ success: false, message: "Invalid login credentials." });
-  }
-  // ✅ Validate password using bcrypt
-  const isPasswordValid = await ValidatePassword(
-    password,
-    exsitingVendor.password,
-    exsitingVendor.salt
-  );
-  if (isPasswordValid) {
-    const accessToken = await GenerateAccessSignature({
-      _id: String(exsitingVendor?._id),
-      name: exsitingVendor?.name,
-      email: exsitingVendor?.email,
-      foodType: exsitingVendor?.foodType,
-    });
-    const refreshToken = await GenerateRefreshSignature({
-      _id: String(exsitingVendor?._id),
-      name: exsitingVendor?.name,
-      email: exsitingVendor?.email,
-    });
-    res.cookie(`x-ref-token`, refreshToken, {
-      httpOnly: true,
-      secure: true, // Use true in production
-      sameSite: "strict",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-    res.cookie(`x-auth-token`, accessToken, {
-      httpOnly: true,
-      secure: true, // Use true in production
-      sameSite: "strict",
-      maxAge: 6 * 60 * 60 * 1000, // 6hr
-    });
+// export const VendorLogin = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   const { email, password } = <VendorLoginInputs>req.body;
+//   console.log(email, password);
+//   if (!email || !password) {
+//     return res
+//       .status(400)
+//       .json({ success: false, message: "Email and password are required." });
+//   }
+//   const exsitingVendor = await FindVendor({ email: email, activeCheck: true });
+//   // ✅ Find vendor with activeCheck
+//   if (!exsitingVendor) {
+//     return res
+//       .status(401)
+//       .json({ success: false, message: "Invalid login credentials." });
+//   }
+//   // ✅ Validate password using bcrypt
+//   const isPasswordValid = await ValidatePassword(
+//     password,
+//     exsitingVendor.password,
+//     exsitingVendor.salt
+//   );
+//   if (isPasswordValid) {
+//     const accessToken = await GenerateAccessSignature({
+//       _id: String(exsitingVendor?._id),
+//       name: exsitingVendor?.name,
+//       email: exsitingVendor?.email,
+//       foodType: exsitingVendor?.foodType,
+//     });
+//     const refreshToken = await GenerateRefreshSignature({
+//       _id: String(exsitingVendor?._id),
+//       name: exsitingVendor?.name,
+//       email: exsitingVendor?.email,
+//     });
+//     res.cookie(`x-ref-token`, refreshToken, {
+//       httpOnly: true,
+//       secure: true, // Use true in production
+//       sameSite: "strict",
+//       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+//     });
+//     res.cookie(`x-auth-token`, accessToken, {
+//       httpOnly: true,
+//       secure: true, // Use true in production
+//       sameSite: "strict",
+//       maxAge: 6 * 60 * 60 * 1000, // 6hr
+//     });
 
-    return res.status(200).json({
-      success: true,
-      message: "Logged in successfully.",
-      data: {
-        _id: String(exsitingVendor._id),
-        name: exsitingVendor.name,
-        email: exsitingVendor.email,
-        foodType: exsitingVendor.foodType,
-        token: accessToken,
-      },
-    });
-  }
-  return res
-    .status(401)
-    .json({ success: false, message: "Login credentials not valid." });
-};
+//     return res.status(200).json({
+//       success: true,
+//       message: "Logged in successfully.",
+//       data: {
+//         _id: String(exsitingVendor._id),
+//         name: exsitingVendor.name,
+//         email: exsitingVendor.email,
+//         foodType: exsitingVendor.foodType,
+//         token: accessToken,
+//       },
+//     });
+//   }
+//   return res
+//     .status(401)
+//     .json({ success: false, message: "Login credentials not valid." });
+// };
 
 //Get the vendor profile detail
 export const GetVendorProfile = async (
@@ -537,95 +536,6 @@ export const ProcessOrder = async (
 
   return res.json({ message: "Unable to process order" });
 };
-
-//Offers
-export const GetOffers = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {};
-export const CreateOffer = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const user = req.user;
-  const offerInputs = plainToClass(CreateOfferInputs, req.body);
-  const inputError = await validate(offerInputs, {
-    validationError: { target: true },
-  });
-  console.log("inputError :", inputError);
-  if (inputError.length > 0) {
-    return res.status(400).json(inputError);
-  }
-  if (user) {
-    const {
-      title,
-      description,
-      bank,
-      bins,
-      endValidity,
-      isActive,
-      minValue,
-      offerAmount,
-      offerType,
-      pincode,
-      promoType,
-      promocode,
-      startValidity,
-    } = <CreateOfferInputs>req.body;
-    const vendor = await FindVendor({ _id: user._id, activeCheck: true });
-    if (vendor) {
-      const curDate = new Date();
-
-      // Single condition for all date validation checks
-      if (
-        startValidity < curDate ||
-        endValidity < curDate ||
-        endValidity < startValidity
-      ) {
-        return res.status(400).json({
-          error:
-            "Invalid date selection. Start and end dates must be today or later, and end date must not be before start date.",
-        });
-      }
-      let OfferObj = {
-        title,
-        description,
-        bank,
-        bins,
-        endValidity,
-        isActive,
-        minValue,
-        offerAmount,
-        offerType,
-        pincode,
-        promoType,
-        promocode,
-        startValidity,
-        vendors: [vendor],
-      };
-      const offer = await Offer.create(OfferObj);
-      console.log("offer :", offer);
-      if (offer) {
-        return res.status(200).json({ msg: "Offer has be genrated.", offer });
-      }
-      return res
-        .status(400)
-        .json({ msg: "Something went wrong while creating offer." });
-    }
-  }
-};
-export const EditOffer = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {};
-export const DeleteOffers = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {};
 
 export const VendorLogout = async (req: Request, res: Response) => {
   // Check if the tokens exist in cookies

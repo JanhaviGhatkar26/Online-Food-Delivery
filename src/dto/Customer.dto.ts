@@ -3,6 +3,7 @@ import {
   IsEmail,
   IsEnum,
   IsOptional,
+  IsString,
   Length,
   Matches,
 } from "class-validator";
@@ -34,7 +35,7 @@ export class CreateCustomerInput {
 export class CustomerLoginInputs {
   @IsEmail()
   email: string;
-  @Length(6, 12)
+  @IsString()
   password: string;
 }
 

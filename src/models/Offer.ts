@@ -30,19 +30,19 @@ const OfferSchema = new Schema(
       required: true,
       enum: ["Vendor-Specific", "Bank-Specific", "Pincode-Specific", "General"],
     },
-    vendors: { type: Schema.Types.ObjectId, ref: "vendor", index: true },
+    vendors: { type: Schema.Types.ObjectId, ref: "vendor" },
     title: { type: String, required: true },
     description: { type: String },
     minValue: { type: Number, required: true, min: 0 },
     offerAmount: { type: Number, required: true, min: 1 },
     startValidity: { type: Date, required: true },
     endValidity: { type: Date, required: true },
-    promocode: { type: String, required: true, unique: true, index: true }, // Promo codes should be unique
+    promocode: { type: String, required: true, unique: true }, // Promo codes should be unique
     promoType: { type: String, required: true, enum: ["Percentage", "Flat"] }, // Enum for validation
     banks: { type: [String], default: [] }, // Store applicable banks
     bins: { type: [Number], default: [] }, // Store applicable BINs (Bank Identification Numbers)
     pincodes: { type: [String], required: true, default: [] }, // Store multiple pincodes
-    isActive: { type: Boolean, default: true, index: true },
+    isActive: { type: Boolean, default: true },
     isDeleted: { type: Boolean, default: false },
   },
   {
@@ -56,9 +56,9 @@ const OfferSchema = new Schema(
     timestamps: true,
   }
 );
-OfferSchema.index({ promocode: 1 }, { unique: true });
-OfferSchema.index({ vendors: 1 });
-OfferSchema.index({ isActive: 1 });
+// OfferSchema.index({ promocode: 1 }, { unique: true });
+// OfferSchema.index({ vendors: 1 });
+// OfferSchema.index({ isActive: 1 });
 
 OfferSchema.pre("save", function (next) {
   if (this.startValidity >= this.endValidity) {

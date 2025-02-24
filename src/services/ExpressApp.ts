@@ -9,6 +9,7 @@ import {
 import path from "path";
 import fs from "fs";
 import cookieParser from "cookie-parser";
+import { GlobalLogin } from "../controllers";
 
 export default async (app: Application) => {
   app.use(cookieParser());
@@ -55,8 +56,9 @@ export default async (app: Application) => {
   app.use("/customer", CustomerRoutes);
   app.use("/customer/addresses", CustomerAddressesRoutes);
   app.use(ShoppingRoutes);
-  app.use("/", (req, res) => {
-    res.send("Hi Admin");
-  });
+  // app.use("/", (req, res) => {
+  //   res.send("Hi Admin");
+  // });
+  app.post("/login", GlobalLogin);
   return app;
 };

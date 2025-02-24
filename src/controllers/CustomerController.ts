@@ -193,56 +193,56 @@ export const RequestOtp = async (
   return res.status(400).json({ msg: "Error with Requesting OTP" });
 }; // 3nd step
 
-export const CustomerLogin = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const loginInputs = plainToClass(CustomerLoginInputs, req.body);
-  const loginErrors = await validate(loginInputs, {
-    validationError: { target: false },
-  });
-  if (loginErrors.length > 0) {
-    return res.status(400).json(loginErrors);
-  }
-  const { email, password } = loginInputs;
-  const customer = await Customer.findOne({
-    email: email,
-    isActive: true,
-    isDeleted: false,
-  });
-  if (customer) {
-    const validation = await ValidatePassword(
-      password,
-      customer?.password,
-      customer?.salt
-    );
-    if (validation) {
-      // Generate the signature
-      const signature = await GenerateAccessSignature({
-        _id: String(customer._id),
-        email: customer.email,
-        verified: customer.verified,
-      });
-      return res.status(200).json({
-        msg: "Logged in succesfully",
-        data: {
-          signature: signature,
-          verified: customer?.verified,
-          email: customer?.email,
-        },
-      });
-    } else {
-      return res.status(400).json({
-        msg: "Ones check you email or password",
-      });
-    }
-  }
-  return res.status(400).json({
-    msg: "Error With Login",
-    data: {},
-  });
-}; //finally you can login
+// export const CustomerLogin = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   const loginInputs = plainToClass(CustomerLoginInputs, req.body);
+//   const loginErrors = await validate(loginInputs, {
+//     validationError: { target: false },
+//   });
+//   if (loginErrors.length > 0) {
+//     return res.status(400).json(loginErrors);
+//   }
+//   const { email, password } = loginInputs;
+//   const customer = await Customer.findOne({
+//     email: email,
+//     isActive: true,
+//     isDeleted: false,
+//   });
+//   if (customer) {
+//     const validation = await ValidatePassword(
+//       password,
+//       customer?.password,
+//       customer?.salt
+//     );
+//     if (validation) {
+//       // Generate the signature
+//       const signature = await GenerateAccessSignature({
+//         _id: String(customer._id),
+//         email: customer.email,
+//         verified: customer.verified,
+//       });
+//       return res.status(200).json({
+//         msg: "Logged in succesfully",
+//         data: {
+//           signature: signature,
+//           verified: customer?.verified,
+//           email: customer?.email,
+//         },
+//       });
+//     } else {
+//       return res.status(400).json({
+//         msg: "Ones check you email or password",
+//       });
+//     }
+//   }
+//   return res.status(400).json({
+//     msg: "Error With Login",
+//     data: {},
+//   });
+// }; //finally you can login
 
 export const GetCustomerProfile = async (
   req: Request,

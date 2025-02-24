@@ -1,6 +1,6 @@
 import express, { Request, Response, NextFunction } from "express";
 import {
-  CustomerLogin,
+  // CustomerLogin,
   CustomerSignUp,
   RequestOtp,
   CustomerVerify,
@@ -24,7 +24,7 @@ const router = express.Router();
 router.post("/signup", CustomerSignUp);
 
 /* ------------------- Login --------------------- */
-router.post("/login", CustomerLogin);
+// router.post("/login", CustomerLogin);
 
 /* ------------------- Authentication --------------------- */
 router.use(Authenticate);
