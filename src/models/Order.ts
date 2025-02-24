@@ -11,7 +11,7 @@ export interface OrderDoc extends Document {
   totalAmount: number;
   addressId: mongoose.Schema.Types.ObjectId;
   orderDate: Date;
-  paidThrough: "cod" | "uip" | "netbanking" | "creditcard" | "debitcard"; // Enum added
+  paidThrough: "cod" | "upi" | "netbanking" | "creditcard" | "debitcard"; // Enum added
   paymentResponses: Record<string, any>; // Can store JSON
   orderStatus:
     | "pending"
@@ -48,7 +48,7 @@ const OrderSchema = new Schema(
     orderDate: { type: Date, default: Date.now },
     paidThrough: {
       type: String,
-      enum: ["cod", "uip", "netbanking", "creditcard", "debitcard"],
+      enum: ["cod", "upi", "netbanking", "creditcard", "debitcard"],
       required: true,
     },
     paymentResponses: { type: Schema.Types.Mixed, default: {} }, // Stores payment details

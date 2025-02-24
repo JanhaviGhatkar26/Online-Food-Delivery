@@ -351,100 +351,236 @@ export const DeactiveMyAcc = async (
 };
 
 // /*----------------------------------- orders -----------------------------------*/
-export const CreateOrder = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  // grab the lgin in customer;
-  const customer = req.user;
-  if (customer) {
-    const orderID = `${Math.floor(Math.random() * 899999) + 1000}`;
-    const profile = await Customer.findById(customer._id);
-    const cart = <[OrderInputs]>req.body;
-    let cartItems = Array();
-    let netAmount = 0.0;
-    let vendorId;
-    const foods = await Food.find()
-      .where("_id")
-      .in(cart.map((item) => item._id))
-      .exec();
-    foods.map((food) => {
-      cart.map(({ _id, unit }) => {
-        if (food._id == _id) {
-          vendorId = food.vendorId;
-          (netAmount += food.price * unit),
-            cartItems.push({ food: food._id, unit });
-        }
-      });
-    });
-    if (!cartItems.length) {
-      return res.status(400).json({ msg: "No valid items in the cart" });
-    }
-    // Create order with item description and note of customer\
-    if (cartItems) {
-      let orderObj = {
-        orderID: orderID,
-        vendorId: vendorId,
-        items: cartItems,
-        totalAmount: netAmount,
-        orderDate: Date(),
-        paidThrough: "COD",
-        paymentResponse: "",
-        orderStatus: "Waiting",
-        remarks: "",
-        deliveryId: "",
-        applierdOffer: false,
-        offerId: null,
-        readyTime: 45,
-      };
+// export const CreateOrder = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   // grab the lgin in customer;
+//   const customer = req.user;
+//   if (!customer) {
+//     return res.status(401).json({ msg: "You have to login first" });
+//   }
+//   const {} = req.body;
+// };
+// export const CreateOrder = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   // grab the lgin in customer;
+//   const customer = req.user;
+//   if (customer) {
+//     const orderID = `${Math.floor(Math.random() * 899999) + 1000}`;
+//     const profile = await Customer.findById(customer._id);
+//     const cart = <[OrderInputs]>req.body;
+//     let cartItems = Array();
+//     let netAmount = 0.0;
+//     let vendorId;
+//     const foods = await Food.find()
+//       .where("_id")
+//       .in(cart.map((item) => item._id))
+//       .exec();
+//     foods.map((food) => {
+//       cart.map(({ _id, unit }) => {
+//         if (food._id == _id) {
+//           vendorId = food.vendorId;
+//           (netAmount += food.price * unit),
+//             cartItems.push({ food: food._id, unit });
+//         }
+//       });
+//     });
+//     if (!cartItems.length) {
+//       return res.status(400).json({ msg: "No valid items in the cart" });
+//     }
+//     // Create order with item description and note of customer\
+//     if (cartItems) {
+//       let orderObj = {
+//         orderID: orderID,
+//         vendorId: vendorId,
+//         items: cartItems,
+//         totalAmount: netAmount,
+//         orderDate: Date(),
+//         paidThrough: "COD",
+//         paymentResponse: "",
+//         orderStatus: "Waiting",
+//         remarks: "",
+//         deliveryId: "",
+//         applierdOffer: false,
+//         offerId: null,
+//         readyTime: 45,
+//       };
 
-      // return res.status(200).json(orderObj);
-      const currentOrder = await Order.create(orderObj);
-      if (currentOrder) {
-        profile.cart = [] as any;
-        profile?.orders.push(currentOrder);
-        const UpdatedProfile = await profile.save();
-        return res.status(200).json(UpdatedProfile);
-      }
-    }
-    // Finally update ordersto user account
-  }
-  return res.status(400).json({ msg: "Error while Placing Order" });
-};
+//       // return res.status(200).json(orderObj);
+//       const currentOrder = await Order.create(orderObj);
+//       if (currentOrder) {
+//         profile.cart = [] as any;
+//         profile?.orders.push(currentOrder);
+//         const UpdatedProfile = await profile.save();
+//         return res.status(200).json(UpdatedProfile);
+//       }
+//     }
+//     // Finally update ordersto user account
+//   }
+//   return res.status(400).json({ msg: "Error while Placing Order" });
+// };
 
-export const GetOrders = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const customer = req.user;
-  if (customer) {
-    const profile = await Customer.findById(customer._id).populate("orders");
-    if (profile) {
-      return res.status(200).json(profile?.orders);
-    }
-  }
+// export const GetOrders = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   const customer = req.user;
+//   if (customer) {
+//     const profile = await Customer.findById(customer._id).populate("orders");
+//     if (profile) {
+//       return res.status(200).json(profile?.orders);
+//     }
+//   }
 
-  return res.status(400).json({ msg: "Error while collecting Order" });
-};
-export const GetOrderByID = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const orderId = req.params.id;
-  if (orderId) {
-    const order = await Order.findById(orderId).populate("items");
-    if (order) {
-      return res.status(200).json(order);
-    }
-  }
-  return res.status(400).json({ msg: "Error while collecting Order" });
-};
+//   return res.status(400).json({ msg: "Error while collecting Order" });
+// };
+// export const GetOrderByID = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   const orderId = req.params.id;
+//   if (orderId) {
+//     const order = await Order.findById(orderId).populate("items");
+//     if (order) {
+//       return res.status(200).json(order);
+//     }
+//   }
+//   return res.status(400).json({ msg: "Error while collecting Order" });
+// };
 
-/*----------------------------------- carts -----------------------------------*/
+// /*----------------------------------- carts -----------------------------------*/
+// // export const CreateCart = async (
+// //   req: Request,
+// //   res: Response,
+// //   next: NextFunction
+// // ) => {
+// //   const customer = req.user;
+
+// //   if (customer) {
+// //     const profile = await Customer.findById(customer._id).populate("cart.food");
+// //     let cartItems = Array();
+
+// //     const { _id, unit } = <OrderInputs>req.body;
+
+// //     const food = await Food.findById(_id);
+
+// //     if (food) {
+// //       if (profile != null) {
+// //         cartItems = profile.cart;
+
+// //         let message = "Product added successfully.";
+
+// //         if (cartItems.length > 0) {
+// //           // Check if the item exists in the cart
+// //           let existFoodItems = cartItems.filter(
+// //             (item) => item.food._id.toString() === _id
+// //           );
+// //           if (existFoodItems.length > 0) {
+// //             const index = cartItems.indexOf(existFoodItems[0]);
+
+// //             // Ensure unit is valid (minimum 1)
+// //             let validUnit = unit > 0 ? unit : 1;
+// //             if (unit === 0) {
+// //               message =
+// //                 "Minimum quantity should be 1. Product added successfully with 1 quantity.";
+// //             }
+
+// //             // Update item in the cart
+// //             cartItems[index] = { food, unit: validUnit };
+// //           } else {
+// //             // Add new item with valid unit (default 1 if unit === 0)
+// //             let addedUnit = unit > 0 ? unit : 1;
+// //             if (unit === 0) {
+// //               message =
+// //                 "Minimum quantity should be 1. Product added successfully with 1 quantity.";
+// //             }
+// //             cartItems.push({ food, unit: addedUnit });
+// //           }
+// //         } else {
+// //           // Add new item with valid unit (default 1 if unit === 0)
+// //           let addedUnit = unit > 0 ? unit : 1;
+// //           if (unit === 0) {
+// //             message =
+// //               "Minimum quantity should be 1. Product added successfully with 1 quantity.";
+// //           }
+// //           cartItems.push({ food, unit: addedUnit });
+// //         }
+
+// //         if (cartItems) {
+// //           profile.cart = cartItems as any;
+// //           const cartResult = await profile.save();
+// //           return res.status(200).json({
+// //             msg: message,
+// //             cart: cartResult.cart,
+// //           });
+// //         }
+// //       }
+// //     }
+// //   }
+
+// //   return res.status(404).json({ msg: "Unable to add to cart!" });
+// // };
+
 // export const CreateCart = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   const customer = req.user;
+//   if (!customer) {
+//     return res.status(401).json({ msg: "Session is expired" });
+//   }
+
+//   const { _id, unit } = <CartInputs>req.body;
+//   if (!unit || unit < 1) {
+//     return res.status(400).json({ msg: "Unit must be at least 1" });
+//   }
+//   const food = await Food.findById(_id);
+//   if (!food) {
+//     return res.status(404).json({ msg: "Food item not found!" });
+//   }
+//   const vendorId = food.vendorId; // Extract vendor ID from food item
+//   let message = "Product added successfully";
+
+//   // Fetch the cart (even if deleted)
+//   let cart = await Cart.findOne({
+//     customerId: customer?._id,
+//     vendorId: vendorId,
+//   });
+//   // If no cart exists, create a new one
+//   if (!cart) {
+//     cart = new Cart({
+//       customerId: customer?._id,
+//       vendorId: vendorId,
+//       items: [{ food: _id, unit: unit > 0 ? unit : 1 }],
+//     });
+//   } else {
+//     let existingFood = cart.items.find((item) => item.food.toString() === _id);
+//     if (existingFood) {
+//       // Increase quantity instead of duplicating the item
+//       existingFood.unit += unit > 0 ? unit : 1;
+//       message = "Product quantity updated successfully";
+//     } else {
+//       // Add new item to this vendor's cart
+//       cart.items.push({ food: _id, unit: unit > 0 ? unit : 1 });
+//     }
+//   }
+//   await cart.save();
+
+//   return res.status(200).json({
+//     msg: message,
+//     cart,
+//   });
+// };
+
+// export const GetCart = async (
 //   req: Request,
 //   res: Response,
 //   next: NextFunction
@@ -452,226 +588,102 @@ export const GetOrderByID = async (
 //   const customer = req.user;
 
 //   if (customer) {
-//     const profile = await Customer.findById(customer._id).populate("cart.food");
-//     let cartItems = Array();
+//     const carts = await Cart.find({ customerId: customer._id }).select(
+//       "-createdAt -updatedAt -__v"
+//     );
+//     if (carts.length > 0) {
+//       const foodId = carts.flatMap((cart) =>
+//         cart.items.map((item) => item.food)
+//       );
+//       const foodItems = await Food.find({ _id: { $in: foodId } });
 
-//     const { _id, unit } = <OrderInputs>req.body;
-
-//     const food = await Food.findById(_id);
-
-//     if (food) {
-//       if (profile != null) {
-//         cartItems = profile.cart;
-
-//         let message = "Product added successfully.";
-
-//         if (cartItems.length > 0) {
-//           // Check if the item exists in the cart
-//           let existFoodItems = cartItems.filter(
-//             (item) => item.food._id.toString() === _id
+//       const updatedCarts = carts.map((cart) => {
+//         const totalAmount = cart.items.reduce((sum, item) => {
+//           const foodItem = foodItems.find(
+//             (f) => f._id.toString() === item.food.toString()
 //           );
-//           if (existFoodItems.length > 0) {
-//             const index = cartItems.indexOf(existFoodItems[0]);
 
-//             // Ensure unit is valid (minimum 1)
-//             let validUnit = unit > 0 ? unit : 1;
-//             if (unit === 0) {
-//               message =
-//                 "Minimum quantity should be 1. Product added successfully with 1 quantity.";
-//             }
+//           // Ensure foodItem exists and has a valid price before using it
+//           const price =
+//             foodItem && typeof foodItem.price === "number" ? foodItem.price : 0;
 
-//             // Update item in the cart
-//             cartItems[index] = { food, unit: validUnit };
-//           } else {
-//             // Add new item with valid unit (default 1 if unit === 0)
-//             let addedUnit = unit > 0 ? unit : 1;
-//             if (unit === 0) {
-//               message =
-//                 "Minimum quantity should be 1. Product added successfully with 1 quantity.";
-//             }
-//             cartItems.push({ food, unit: addedUnit });
-//           }
-//         } else {
-//           // Add new item with valid unit (default 1 if unit === 0)
-//           let addedUnit = unit > 0 ? unit : 1;
-//           if (unit === 0) {
-//             message =
-//               "Minimum quantity should be 1. Product added successfully with 1 quantity.";
-//           }
-//           cartItems.push({ food, unit: addedUnit });
-//         }
-
-//         if (cartItems) {
-//           profile.cart = cartItems as any;
-//           const cartResult = await profile.save();
-//           return res.status(200).json({
-//             msg: message,
-//             cart: cartResult.cart,
-//           });
-//         }
-//       }
+//           return sum + price * item.unit; // ✅ Now correctly returns a number
+//         }, 0); // Initial sum value is 0 (ensures reduce starts correctly)
+//         return {
+//           ...cart.toObject(),
+//           totalAmount,
+//         };
+//       });
+//       return res.status(200).json(updatedCarts);
 //     }
+//     return res.status(404).json({ msg: "Cart is empty!" });
+//   }
+//   return res.status(404).json({ msg: "Cart is empty!" });
+// };
+// export const DeleteCart = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   const customer = req.user;
+
+//   if (customer) {
+//     await Cart.deleteMany({ customerId: customer._id });
+//     return res.status(200).json({
+//       message: "Your cart has been emptied successfully!",
+//     });
 //   }
 
-//   return res.status(404).json({ msg: "Unable to add to cart!" });
+//   return res.status(400).json({
+//     message:
+//       "Your cart is already empty! Hungry? Explore delicious meals and add your favorites to the cart.",
+//   });
 // };
 
-export const CreateCart = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const customer = req.user;
-  if (!customer) {
-    return res.status(401).json({ msg: "Session is expired" });
-  }
-
-  const { _id, unit } = <CartInputs>req.body;
-  if (!unit || unit < 1) {
-    return res.status(400).json({ msg: "Unit must be at least 1" });
-  }
-  const food = await Food.findById(_id);
-  if (!food) {
-    return res.status(404).json({ msg: "Food item not found!" });
-  }
-  const vendorId = food.vendorId; // Extract vendor ID from food item
-  let message = "Product added successfully";
-
-  // Fetch the cart (even if deleted)
-  let cart = await Cart.findOne({
-    customerId: customer?._id,
-    vendorId: vendorId,
-  });
-  // If no cart exists, create a new one
-  if (!cart) {
-    cart = new Cart({
-      customerId: customer?._id,
-      vendorId: vendorId,
-      items: [{ food: _id, unit: unit > 0 ? unit : 1 }],
-    });
-  } else {
-    let existingFood = cart.items.find((item) => item.food.toString() === _id);
-    if (existingFood) {
-      // Increase quantity instead of duplicating the item
-      existingFood.unit += unit > 0 ? unit : 1;
-      message = "Product quantity updated successfully";
-    } else {
-      // Add new item to this vendor's cart
-      cart.items.push({ food: _id, unit: unit > 0 ? unit : 1 });
-    }
-  }
-  await cart.save();
-
-  return res.status(200).json({
-    msg: message,
-    cart,
-  });
-};
-
-export const GetCart = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const customer = req.user;
-
-  if (customer) {
-    const carts = await Cart.find({ customerId: customer._id }).select(
-      "-createdAt -updatedAt -__v"
-    );
-    if (carts.length > 0) {
-      const foodId = carts.flatMap((cart) =>
-        cart.items.map((item) => item.food)
-      );
-      const foodItems = await Food.find({ _id: { $in: foodId } });
-
-      const updatedCarts = carts.map((cart) => {
-        const totalAmount = cart.items.reduce((sum, item) => {
-          const foodItem = foodItems.find(
-            (f) => f._id.toString() === item.food.toString()
-          );
-
-          // Ensure foodItem exists and has a valid price before using it
-          const price =
-            foodItem && typeof foodItem.price === "number" ? foodItem.price : 0;
-
-          return sum + price * item.unit; // ✅ Now correctly returns a number
-        }, 0); // Initial sum value is 0 (ensures reduce starts correctly)
-        return {
-          ...cart.toObject(),
-          totalAmount,
-        };
-      });
-      return res.status(200).json(updatedCarts);
-    }
-    return res.status(404).json({ msg: "Cart is empty!" });
-  }
-  return res.status(404).json({ msg: "Cart is empty!" });
-};
-export const DeleteCart = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const customer = req.user;
-
-  if (customer) {
-    await Cart.deleteMany({ customerId: customer._id });
-    return res.status(200).json({
-      message: "Your cart has been emptied successfully!",
-    });
-  }
-
-  return res.status(400).json({
-    message:
-      "Your cart is already empty! Hungry? Explore delicious meals and add your favorites to the cart.",
-  });
-};
-
-export const DeleteCartItem = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const customer = req.user;
-    const { vendorId, cartItemId } = req.params;
-    console.log(
-      `🛒 Deleting from Cart - Vendor: ${vendorId}, Item: ${cartItemId} || All`
-    );
-    const cart = await Cart.findOne({
-      customerId: customer?._id,
-      vendorId: vendorId,
-    });
-    if (!cart) {
-      return res.status(404).json({ msg: "Cart not found for this vendor!" });
-    }
-    const initialItemCount = cart.items.length;
-    cart.items = cart.items.filter((item) => {
-      return item._id.toString() !== cartItemId;
-    });
-    if (initialItemCount === cart.items.length) {
-      return res
-        .status(400)
-        .json({ msg: "Item not found under the specified vendor!" });
-    }
-    if (cart.items.length === 0) {
-      await Cart.deleteOne({ customerId: customer._id, vendorId });
-      return res
-        .status(200)
-        .json({ msg: "Cart deleted as it had no more items!" });
-    }
-    await cart.save();
-    return res
-      .status(200)
-      .json({ msg: "Cart item deleted successfully!", cart });
-  } catch (error) {
-    console.error("❌ DeleteCartItem Error:", error);
-    return res
-      .status(500)
-      .json({ message: "Something went wrong! Please try again later." });
-  }
-};
+// export const DeleteCartItem = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   try {
+//     const customer = req.user;
+//     const { vendorId, cartItemId } = req.params;
+//     console.log(
+//       `🛒 Deleting from Cart - Vendor: ${vendorId}, Item: ${cartItemId} || All`
+//     );
+//     const cart = await Cart.findOne({
+//       customerId: customer?._id,
+//       vendorId: vendorId,
+//     });
+//     if (!cart) {
+//       return res.status(404).json({ msg: "Cart not found for this vendor!" });
+//     }
+//     const initialItemCount = cart.items.length;
+//     cart.items = cart.items.filter((item) => {
+//       return item._id.toString() !== cartItemId;
+//     });
+//     if (initialItemCount === cart.items.length) {
+//       return res
+//         .status(400)
+//         .json({ msg: "Item not found under the specified vendor!" });
+//     }
+//     if (cart.items.length === 0) {
+//       await Cart.deleteOne({ customerId: customer._id, vendorId });
+//       return res
+//         .status(200)
+//         .json({ msg: "Cart deleted as it had no more items!" });
+//     }
+//     await cart.save();
+//     return res
+//       .status(200)
+//       .json({ msg: "Cart item deleted successfully!", cart });
+//   } catch (error) {
+//     console.error("❌ DeleteCartItem Error:", error);
+//     return res
+//       .status(500)
+//       .json({ message: "Something went wrong! Please try again later." });
+//   }
+// };
 // export const DeleteCartItem = async (
 //   req: Request,
 //   res: Response,

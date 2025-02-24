@@ -77,9 +77,14 @@ export interface CustomerPayload {
   verified: boolean;
 }
 
+// export class OrderInputs {
+//   _id: string;
+//   unit: number;
+// }
 export class OrderInputs {
-  _id: string;
-  unit: number;
+  cartID: string;
+  paidThrough: "cod" | "uip" | "netbanking" | "creditcard" | "debitcard";
+  addressID: string;
 }
 export class CartInputs {
   _id: string;
