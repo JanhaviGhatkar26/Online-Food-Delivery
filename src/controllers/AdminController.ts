@@ -6,7 +6,7 @@ import {
   findVendor,
   VendorLoginInputs,
 } from "../dto";
-import { Customer, Vendor } from "../models";
+import { Admin, Customer, Vendor } from "../models";
 import {
   GenerateAccessSignature,
   GeneratePassword,
@@ -314,13 +314,22 @@ export const GlobalLogin = async (
 
   const { email, password } = loginInputs;
   let user;
+  let role;
   // Check in Customer Table
-  user = await Customer.findOne({
+  user = await Admin.findOne({
     email,
     isActive: true,
     isDeleted: false,
   });
-  let role = "customer";
+  role = "admin";
+  if (!user) {
+    user = await Customer.findOne({
+      email,
+      isActive: true,
+      isDeleted: false,
+    });
+    role = "customer";
+  }
 
   if (!user) {
     // If not found in customers, check in Vendor Table
@@ -330,7 +339,7 @@ export const GlobalLogin = async (
 
   if (!user) {
     return res
-      .status(401)
+      .status(400)
       .json({ success: false, message: "Invalid login credentials." });
   }
 
@@ -360,7 +369,6 @@ export const GlobalLogin = async (
           _id: String(user._id),
           email: user.email,
           role: role,
-          verified: user.verified || false,
         }
   );
 
@@ -370,7 +378,6 @@ export const GlobalLogin = async (
       : {
           _id: String(user._id),
           email: user.email,
-          verified: user.verified || false,
         }
   );
 
@@ -396,7 +403,6 @@ export const GlobalLogin = async (
       _id: String(user._id),
       email: user.email,
       token: accessToken,
-      ...(role !== "vendor" && { verified: user.verified || false }),
       role: role,
     },
   });
